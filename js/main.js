@@ -1,796 +1,616 @@
-// Main Application Logic for POS System
+// Main JavaScript for POS System
 
-// Application state
-let currentPage = 'sales';
-let currentUser = null;
+// Global variables
+let currentPage = "sales";
+let currentEditingProduct = null;
+let currentEditingCustomer = null;
 let cart = [];
-let selectedCustomer = null;
-let selectedPaymentMethod = 'cash';
 
-// Initialize application
-document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
+// DOMContentLoaded event listener
+document.addEventListener("DOMContentLoaded", () => {
+    loadPage(currentPage);
     setupEventListeners();
-    loadInitialData();
+    updateHeaderCompanyName(dataManager.getSettings().companyName);
 });
 
-// Initialize application
-function initializeApp() {
-    // Set current user (in real app, this would come from login)
-    currentUser = POS.data.read('users', 'admin');
-    
-    // Show sales page by default
-    showPage('sales');
-    
-    // Load sample data if no products exist
-    loadSampleDataIfNeeded();
-    
-    console.log('POS System initialized successfully');
+// Load page content
+function loadPage(page) {
+    currentPage = page;
+    const mainContent = document.getElementById("main-content");
+    if (!mainContent) return;
+
+    // Remove active class from all nav items
+    document.querySelectorAll(".sidebar-nav a").forEach(item => {
+        item.classList.remove("active");
+    });
+
+    // Add active class to current nav item
+    const activeNavItem = document.querySelector(`.sidebar-nav a[data-page="${page}"]`);
+    if (activeNavItem) {
+        activeNavItem.classList.add("active");
+    }
+
+    // Load content based on page
+    switch (page) {
+        case "sales":
+            mainContent.innerHTML = getSalesPageHTML();
+            loadProducts();
+            loadCustomersForSelect();
+            break;
+        case "products":
+            mainContent.innerHTML = getProductsPageHTML();
+            loadProductsTable();
+            loadCategoriesForSelect();
+            break;
+        case "inventory":
+            mainContent.innerHTML = getInventoryPageHTML();
+            loadInventoryPage();
+            break;
+        case "customers":
+            mainContent.innerHTML = getCustomersPageHTML();
+            loadCustomersPage();
+            break;
+        case "reports":
+            mainContent.innerHTML = getReportsPageHTML();
+            loadReportsPage();
+            break;
+        case "settings":
+            mainContent.innerHTML = getSettingsPageHTML();
+            loadSettingsPage();
+            break;
+        default:
+            mainContent.innerHTML = `<h1>পেজ পাওয়া যায়নি</h1>`;
+    }
+    // Ensure modals are closed when page changes
+    closeModal();
 }
 
 // Setup event listeners
 function setupEventListeners() {
-    // Navigation menu
-    setupNavigation();
-    
-    // Search functionality
-    setupSearch();
-    
-    // Category filters
-    setupCategoryFilters();
-    
-    // Payment method selection
-    setupPaymentMethods();
-    
-    // Form submissions
-    setupFormSubmissions();
-    
-    // Cart functionality
-    setupCartFunctionality();
-}
-
-// Setup navigation
-function setupNavigation() {
-    const navItems = document.querySelectorAll('.nav-item');
-    
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
+    // Sidebar navigation
+    document.querySelectorAll(".sidebar-nav a").forEach(item => {
+        item.addEventListener("click", (e) => {
             e.preventDefault();
-            
-            const page = this.dataset.page;
-            if (page) {
-                showPage(page);
-                
-                // Update active nav item
-                navItems.forEach(nav => nav.classList.remove('active'));
-                this.classList.add('active');
-            }
+            loadPage(e.target.dataset.page);
         });
     });
-}
 
-// Show specific page
-function showPage(pageId) {
-    // Hide all pages
-    const pages = document.querySelectorAll('.page');
-    pages.forEach(page => page.classList.remove('active'));
-    
-    // Show selected page
-    const targetPage = document.getElementById(`${pageId}-page`);
-    if (targetPage) {
-        targetPage.classList.add('active');
-        currentPage = pageId;
-        
-        // Load page-specific data
-        loadPageData(pageId);
-    }
-}
-
-// Load page-specific data
-function loadPageData(pageId) {
-    switch (pageId) {
-        case 'sales':
-            loadProducts();
-            loadCustomers();
-            break;
-        case 'products':
-            loadProductsTable();
-            loadCategories();
-            break;
-        case 'inventory':
-            loadInventoryData();
-            break;
-        case 'customers':
-            loadCustomersTable();
-            break;
-        case 'reports':
-            // Reports will be loaded when user selects date range
-            break;
-        case 'settings':
-            loadSettings();
-            break;
-    }
-}
-
-// Setup search functionality
-function setupSearch() {
-    const searchInput = document.getElementById('product-search');
-    if (searchInput) {
-        const debouncedSearch = debounce(function() {
-            const searchTerm = this.value;
-            loadProducts({ search: searchTerm });
-        }, 300);
-        
-        searchInput.addEventListener('input', debouncedSearch);
-    }
-}
-
-// Setup category filters
-function setupCategoryFilters() {
-    const categoryButtons = document.querySelectorAll('.category-btn');
-    
-    categoryButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Update active button
-            categoryButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Filter products
-            const category = this.dataset.category;
-            loadProducts({ category });
-        });
+    // Modals
+    document.querySelectorAll(".modal-close, .modal-overlay").forEach(element => {
+        element.addEventListener("click", closeModal);
     });
-}
 
-// Setup payment methods
-function setupPaymentMethods() {
-    const paymentButtons = document.querySelectorAll('.payment-btn');
-    
-    paymentButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Update active button
-            paymentButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Update selected payment method
-            selectedPaymentMethod = this.dataset.method;
-        });
-    });
-    
-    // Setup paid amount calculation
-    const paidAmountInput = document.getElementById('paid-amount');
-    if (paidAmountInput) {
-        paidAmountInput.addEventListener('input', calculateChange);
-    }
-    
-    // Setup discount calculation
-    const discountInput = document.getElementById('discount-amount');
-    const discountType = document.getElementById('discount-type');
-    
-    if (discountInput && discountType) {
-        discountInput.addEventListener('input', updateCartSummary);
-        discountType.addEventListener('change', updateCartSummary);
-    }
-}
-
-// Setup form submissions
-function setupFormSubmissions() {
-    // Add product form
-    const addProductForm = document.getElementById('add-product-form');
-    if (addProductForm) {
-        addProductForm.addEventListener('submit', handleAddProduct);
-    }
-    
-    // Add customer form
-    const addCustomerForm = document.getElementById('add-customer-form');
-    if (addCustomerForm) {
-        addCustomerForm.addEventListener('submit', handleAddCustomer);
-    }
-    
-    // Company settings form
-    const companySettingsForm = document.getElementById('company-settings-form');
-    if (companySettingsForm) {
-        companySettingsForm.addEventListener('submit', handleCompanySettings);
-    }
-    
-    // POS settings form
-    const posSettingsForm = document.getElementById('pos-settings-form');
-    if (posSettingsForm) {
-        posSettingsForm.addEventListener('submit', handlePOSSettings);
-    }
-}
-
-// Setup cart functionality
-function setupCartFunctionality() {
-    // Customer selection
-    const customerSelect = document.getElementById('customer-select');
-    if (customerSelect) {
-        customerSelect.addEventListener('change', function() {
-            selectedCustomer = this.value ? POS.data.read('customers', this.value) : null;
-        });
-    }
-}
-
-// Load initial data
-function loadInitialData() {
-    loadProducts();
-    loadCustomers();
-    updateCartSummary();
-}
-
-// Load sample data if needed
-function loadSampleDataIfNeeded() {
-    const products = POS.getProducts();
-    
-    if (products.length === 0) {
-        // Add sample products
-        const sampleProducts = [
-            {
-                name: 'চা',
-                description: 'গরম চা',
-                sku: 'TEA001',
-                category: 'restaurant',
-                unit: 'piece',
-                purchase_price: 5,
-                selling_price: 10,
-                tax_rate: 15,
-                stock_quantity: 100,
-                min_stock_level: 10,
-                is_active: true
-            },
-            {
-                name: 'কফি',
-                description: 'গরম কফি',
-                sku: 'COFFEE001',
-                category: 'restaurant',
-                unit: 'piece',
-                purchase_price: 15,
-                selling_price: 25,
-                tax_rate: 15,
-                stock_quantity: 50,
-                min_stock_level: 5,
-                is_active: true
-            },
-            {
-                name: 'চাল',
-                description: 'বাসমতি চাল',
-                sku: 'RICE001',
-                category: 'grocery',
-                unit: 'kg',
-                purchase_price: 80,
-                selling_price: 100,
-                tax_rate: 5,
-                stock_quantity: 200,
-                min_stock_level: 20,
-                is_active: true
-            },
-            {
-                name: 'টি-শার্ট',
-                description: 'সুতি টি-শার্ট',
-                sku: 'TSHIRT001',
-                category: 'clothing',
-                unit: 'piece',
-                purchase_price: 200,
-                selling_price: 350,
-                tax_rate: 15,
-                stock_quantity: 25,
-                min_stock_level: 5,
-                is_active: true
-            }
-        ];
-        
-        sampleProducts.forEach(product => {
-            POS.createProduct(product);
-        });
-        
-        // Add sample customer
-        POS.createCustomer({
-            name: 'সাধারণ গ্রাহক',
-            phone: '01700000000',
-            email: 'customer@example.com',
-            address: 'ঢাকা, বাংলাদেশ',
-            credit_limit: 5000,
-            current_balance: 0,
-            loyalty_points: 0
-        });
-        
-        showToast('নমুনা ডেটা লোড করা হয়েছে', 'info');
-    }
-}
-
-// Load products for sales page
-function loadProducts(filters = {}) {
-    const products = POS.getProducts(filters);
-    const productsGrid = document.getElementById('products-grid');
-    
-    if (!productsGrid) return;
-    
-    productsGrid.innerHTML = '';
-    
-    products.forEach(product => {
-        const productCard = createProductCard(product);
-        productsGrid.appendChild(productCard);
-    });
-}
-
-// Create product card element
-function createProductCard(product) {
-    const card = document.createElement('div');
-    card.className = 'product-card';
-    card.dataset.productId = product.id;
-    
-    const stockStatus = product.stock_quantity === 0 ? 'স্টক নেই' : 
-                       product.stock_quantity <= product.min_stock_level ? 'কম স্টক' : 
-                       `স্টক: ${product.stock_quantity}`;
-    
-    card.innerHTML = `
-        <div class="product-image">
-            <i class="fas fa-box"></i>
-        </div>
-        <div class="product-name">${product.name}</div>
-        <div class="product-price">${formatCurrency(product.selling_price)}</div>
-        <div class="product-stock">${stockStatus}</div>
-    `;
-    
-    // Add click event to add to cart
-    card.addEventListener('click', function() {
-        if (product.stock_quantity > 0) {
-            addToCart(product);
-        } else {
-            showToast('এই পণ্যটি স্টকে নেই', 'warning');
-        }
-    });
-    
-    // Disable if out of stock
-    if (product.stock_quantity === 0) {
-        card.style.opacity = '0.5';
-        card.style.cursor = 'not-allowed';
-    }
-    
-    return card;
-}
-
-// Load customers for dropdown
-function loadCustomers() {
-    const customers = POS.getCustomers();
-    const customerSelect = document.getElementById('customer-select');
-    
-    if (!customerSelect) return;
-    
-    customerSelect.innerHTML = '<option value="">গ্রাহক নির্বাচন করুন</option>';
-    
-    customers.forEach(customer => {
-        const option = document.createElement('option');
-        option.value = customer.id;
-        option.textContent = `${customer.name} (${customer.phone})`;
-        customerSelect.appendChild(option);
-    });
-}
-
-// Cart management functions
-function addToCart(product) {
-    const existingItem = cart.find(item => item.product_id === product.id);
-    
-    if (existingItem) {
-        if (existingItem.quantity < product.stock_quantity) {
-            existingItem.quantity++;
-            updateCartSummary();
-            renderCart();
-            showToast(`${product.name} কার্টে যোগ করা হয়েছে`, 'success');
-        } else {
-            showToast('পর্যাপ্ত স্টক নেই', 'warning');
-        }
-    } else {
-        const cartItem = {
-            product_id: product.id,
-            product_name: product.name,
-            unit_price: product.selling_price,
-            quantity: 1,
-            tax_rate: product.tax_rate || 0,
-            discount: 0
-        };
-        
-        cart.push(cartItem);
-        updateCartSummary();
-        renderCart();
-        showToast(`${product.name} কার্টে যোগ করা হয়েছে`, 'success');
-    }
-}
-
-function removeFromCart(productId) {
-    cart = cart.filter(item => item.product_id !== productId);
-    updateCartSummary();
-    renderCart();
-    showToast('পণ্য কার্ট থেকে সরানো হয়েছে', 'info');
-}
-
-function updateCartItemQuantity(productId, quantity) {
-    const item = cart.find(item => item.product_id === productId);
-    const product = POS.data.read('products', productId);
-    
-    if (item && product) {
-        if (quantity <= 0) {
-            removeFromCart(productId);
-        } else if (quantity <= product.stock_quantity) {
-            item.quantity = quantity;
-            updateCartSummary();
-            renderCart();
-        } else {
-            showToast('পর্যাপ্ত স্টক নেই', 'warning');
-        }
-    }
-}
-
-function clearCart() {
-    cart = [];
-    selectedCustomer = null;
-    document.getElementById('customer-select').value = '';
-    updateCartSummary();
-    renderCart();
-    showToast('কার্ট খালি করা হয়েছে', 'info');
-}
-
-// Render cart items
-function renderCart() {
-    const cartItemsContainer = document.getElementById('cart-items');
-    if (!cartItemsContainer) return;
-    
-    cartItemsContainer.innerHTML = '';
-    
-    if (cart.length === 0) {
-        cartItemsContainer.innerHTML = '<p class="text-center text-muted">কার্ট খালি</p>';
-        return;
-    }
-    
-    cart.forEach(item => {
-        const cartItemElement = createCartItemElement(item);
-        cartItemsContainer.appendChild(cartItemElement);
-    });
-}
-
-// Create cart item element
-function createCartItemElement(item) {
-    const itemElement = document.createElement('div');
-    itemElement.className = 'cart-item';
-    
-    const totalAmount = item.quantity * item.unit_price;
-    
-    itemElement.innerHTML = `
-        <div class="cart-item-info">
-            <div class="cart-item-name">${item.product_name}</div>
-            <div class="cart-item-price">${formatCurrency(item.unit_price)} x ${item.quantity}</div>
-        </div>
-        <div class="cart-item-controls">
-            <div class="quantity-controls">
-                <button class="quantity-btn" onclick="updateCartItemQuantity('${item.product_id}', ${item.quantity - 1})">
-                    <i class="fas fa-minus"></i>
-                </button>
-                <input type="number" class="quantity-input" value="${item.quantity}" 
-                       onchange="updateCartItemQuantity('${item.product_id}', parseInt(this.value))" min="1">
-                <button class="quantity-btn" onclick="updateCartItemQuantity('${item.product_id}', ${item.quantity + 1})">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-            <button class="remove-item-btn" onclick="removeFromCart('${item.product_id}')">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-        <div class="cart-item-total">${formatCurrency(totalAmount)}</div>
-    `;
-    
-    return itemElement;
-}
-
-// Update cart summary
-function updateCartSummary() {
-    const subtotal = cart.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-    
-    // Calculate discount
-    const discountAmount = parseNumber(document.getElementById('discount-amount')?.value || 0);
-    const discountType = document.getElementById('discount-type')?.value || 'amount';
-    const discount = calculateDiscount(subtotal, discountAmount, discountType);
-    
-    // Calculate tax
-    const taxableAmount = subtotal - discount;
-    const tax = cart.reduce((sum, item) => {
-        const itemTotal = item.quantity * item.unit_price;
-        const itemDiscount = (itemTotal / subtotal) * discount;
-        const itemTaxableAmount = itemTotal - itemDiscount;
-        return sum + calculateTax(itemTaxableAmount, item.tax_rate);
-    }, 0);
-    
-    const grandTotal = taxableAmount + tax;
-    
-    // Update UI
-    document.getElementById('subtotal').textContent = formatCurrency(subtotal);
-    document.getElementById('tax-amount').textContent = formatCurrency(tax);
-    document.getElementById('grand-total').textContent = formatCurrency(grandTotal);
-    
-    // Update change calculation
-    calculateChange();
-}
-
-// Calculate change
-function calculateChange() {
-    const grandTotal = parseNumber(document.getElementById('grand-total')?.textContent?.replace(/[^\d.]/g, '') || 0);
-    const paidAmount = parseNumber(document.getElementById('paid-amount')?.value || 0);
-    const change = Math.max(0, paidAmount - grandTotal);
-    
-    document.getElementById('change-amount').textContent = formatCurrency(change);
-}
-
-// Complete sale
-function completeSale() {
-    if (cart.length === 0) {
-        showToast('কার্টে কোনো পণ্য নেই', 'warning');
-        return;
-    }
-    
-    const grandTotal = parseNumber(document.getElementById('grand-total')?.textContent?.replace(/[^\d.]/g, '') || 0);
-    const paidAmount = parseNumber(document.getElementById('paid-amount')?.value || 0);
-    
-    if (selectedPaymentMethod === 'cash' && paidAmount < grandTotal) {
-        showToast('প্রদত্ত পরিমাণ যথেষ্ট নয়', 'warning');
-        return;
-    }
-    
-    showLoading();
-    
-    // Prepare sale data
-    const subtotal = cart.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-    const discountAmount = parseNumber(document.getElementById('discount-amount')?.value || 0);
-    const discountType = document.getElementById('discount-type')?.value || 'amount';
-    const totalDiscount = calculateDiscount(subtotal, discountAmount, discountType);
-    const totalTax = parseNumber(document.getElementById('tax-amount')?.textContent?.replace(/[^\d.]/g, '') || 0);
-    
-    const saleData = {
-        customer_id: selectedCustomer?.id || null,
-        items: cart.map(item => ({
-            ...item,
-            total_amount: item.quantity * item.unit_price
-        })),
-        subtotal: subtotal,
-        total_discount: totalDiscount,
-        total_tax: totalTax,
-        grand_total: grandTotal,
-        payment_method: selectedPaymentMethod,
-        payment_status: paidAmount >= grandTotal ? 'paid' : 'partial',
-        paid_amount: paidAmount,
-        due_amount: Math.max(0, grandTotal - paidAmount),
-        cashier_id: currentUser?.id || 'admin'
-    };
-    
-    // Create sale
-    const sale = POS.createSale(saleData);
-    
-    hideLoading();
-    
-    if (sale) {
-        showToast('বিক্রয় সফলভাবে সম্পন্ন হয়েছে', 'success');
-        
-        // Generate and show receipt
-        generateReceipt(sale);
-        
-        // Clear cart
-        clearCart();
-        
-        // Reset form
-        document.getElementById('paid-amount').value = '';
-        document.getElementById('discount-amount').value = '';
-        
-        // Reload products to update stock display
-        loadProducts();
-    } else {
-        showToast('বিক্রয় সম্পন্ন করতে সমস্যা হয়েছে', 'error');
-    }
-}
-
-// Generate receipt
-function generateReceipt(sale) {
-    const settings = POS.getSettings();
-    const receiptContent = document.getElementById('receipt-content');
-    
-    if (!receiptContent) return;
-    
-    const customer = sale.customer_id ? POS.data.read('customers', sale.customer_id) : null;
-    
-    receiptContent.innerHTML = `
-        <div class="receipt">
-            <div class="text-center mb-2">
-                <h3>${settings.company.name}</h3>
-                <p>${settings.company.address}</p>
-                <p>ফোন: ${settings.company.phone}</p>
-                ${settings.company.email ? `<p>ইমেইল: ${settings.company.email}</p>` : ''}
-            </div>
-            
-            <div class="border-bottom mb-2">
-                <p><strong>ইনভয়েস নং:</strong> ${sale.invoice_number}</p>
-                <p><strong>তারিখ:</strong> ${formatDate(sale.sale_date)} ${formatTime(sale.sale_date)}</p>
-                ${customer ? `<p><strong>গ্রাহক:</strong> ${customer.name}</p>` : ''}
-                ${customer ? `<p><strong>ফোন:</strong> ${customer.phone}</p>` : ''}
-            </div>
-            
-            <table style="width: 100%; margin-bottom: 10px;">
-                <thead>
-                    <tr>
-                        <th style="text-align: left;">পণ্য</th>
-                        <th style="text-align: center;">পরিমাণ</th>
-                        <th style="text-align: right;">দাম</th>
-                        <th style="text-align: right;">মোট</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${sale.items.map(item => `
-                        <tr>
-                            <td>${item.product_name}</td>
-                            <td style="text-align: center;">${item.quantity}</td>
-                            <td style="text-align: right;">${formatCurrency(item.unit_price)}</td>
-                            <td style="text-align: right;">${formatCurrency(item.total_amount)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            
-            <div class="border-top">
-                <div style="display: flex; justify-content: space-between;">
-                    <span>সাবটোটাল:</span>
-                    <span>${formatCurrency(sale.subtotal)}</span>
-                </div>
-                ${sale.total_discount > 0 ? `
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>ডিসকাউন্ট:</span>
-                        <span>-${formatCurrency(sale.total_discount)}</span>
-                    </div>
-                ` : ''}
-                <div style="display: flex; justify-content: space-between;">
-                    <span>ট্যাক্স:</span>
-                    <span>${formatCurrency(sale.total_tax)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em;">
-                    <span>মোট:</span>
-                    <span>${formatCurrency(sale.grand_total)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>প্রদত্ত:</span>
-                    <span>${formatCurrency(sale.paid_amount)}</span>
-                </div>
-                ${sale.due_amount > 0 ? `
-                    <div style="display: flex; justify-content: space-between; color: red;">
-                        <span>বাকি:</span>
-                        <span>${formatCurrency(sale.due_amount)}</span>
-                    </div>
-                ` : ''}
-                ${sale.paid_amount > sale.grand_total ? `
-                    <div style="display: flex; justify-content: space-between; color: green;">
-                        <span>ফেরত:</span>
-                        <span>${formatCurrency(sale.paid_amount - sale.grand_total)}</span>
-                    </div>
-                ` : ''}
-            </div>
-            
-            <div class="text-center mt-2">
-                <p>${settings.print.header_text}</p>
-                <p>${settings.print.footer_text}</p>
-            </div>
-        </div>
-    `;
-    
-    showModal('receipt-modal');
-    
-    // Auto print if enabled
-    if (settings.pos.auto_print_receipt) {
-        setTimeout(() => printReceipt(), 500);
-    }
-}
-
-// Print receipt
-function printReceipt() {
-    printContent('receipt-content');
-}
-
-// Hold sale (save for later)
-function holdSale() {
-    if (cart.length === 0) {
-        showToast('কার্টে কোনো পণ্য নেই', 'warning');
-        return;
-    }
-    
-    // In a real application, you would save this to a "held sales" storage
-    const heldSale = {
-        id: generateUniqueId(),
-        cart: [...cart],
-        customer: selectedCustomer,
-        timestamp: new Date().toISOString()
-    };
-    
-    // Save to localStorage for now
-    const heldSales = Storage.get('held_sales', []);
-    heldSales.push(heldSale);
-    Storage.set('held_sales', heldSales);
-    
-    clearCart();
-    showToast('বিক্রয় হোল্ড করা হয়েছে', 'info');
-}
-
-// Barcode scanning (placeholder)
-function scanBarcode() {
-    // In a real application, this would integrate with a barcode scanner
-    const barcode = prompt('বারকোড স্ক্যান করুন বা টাইপ করুন:');
-    if (barcode) {
-        const product = POS.data.getProductByBarcode(barcode);
-        if (product) {
-            addToCart(product);
-        } else {
-            showToast('পণ্য পাওয়া যায়নি', 'warning');
-        }
-    }
-}
-
-// Logout function
-function logout() {
-    if (confirm('আপনি কি লগআউট করতে চান?')) {
-        // Clear current session
-        currentUser = null;
-        cart = [];
-        selectedCustomer = null;
-        
-        // In a real application, you would redirect to login page
-        showToast('সফলভাবে লগআউট হয়েছে', 'info');
-        location.reload();
-    }
-}
-
-// Global functions for HTML onclick events
-window.addToCart = addToCart;
-window.removeFromCart = removeFromCart;
-window.updateCartItemQuantity = updateCartItemQuantity;
-window.clearCart = clearCart;
-window.completeSale = completeSale;
-window.holdSale = holdSale;
-window.scanBarcode = scanBarcode;
-window.printReceipt = printReceipt;
-window.logout = logout;
-
-
-
-// Modal functionality
-function openModal(modalId) {
-    const overlay = document.getElementById('modal-overlay');
-    const modal = document.getElementById(modalId);
-    overlay.classList.remove('hidden');
-    modal.style.display = 'block';
-}
-
-function closeModal() {
-    const overlay = document.getElementById('modal-overlay');
-    overlay.classList.add('hidden');
-    // Hide all modals
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.style.display = 'none';
-    });
-}
-
-// Close modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
-    const overlay = document.getElementById('modal-overlay');
-    if (overlay) {
-        overlay.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
-    }
-
-    // Close modal with Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
+    // Keyboard shortcuts
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
             closeModal();
         }
     });
 
-    // Close modal buttons
-    document.querySelectorAll('.modal-close').forEach(btn => {
-        btn.addEventListener('click', closeModal);
+    // Initial sound setup
+    soundManager.init();
+}
+
+// Open modal
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add("active");
+        document.body.classList.add("modal-open");
+    }
+}
+
+// Close modal
+function closeModal() {
+    document.querySelectorAll(".modal").forEach(modal => {
+        modal.classList.remove("active");
     });
-});
+    document.body.classList.remove("modal-open");
+    // Reset current editing product/customer
+    currentEditingProduct = null;
+    currentEditingCustomer = null;
+}
+
+// Show notification
+function showNotification(message, type = "info") {
+    const notificationContainer = document.getElementById("notification-container");
+    if (!notificationContainer) return;
+
+    const notification = document.createElement("div");
+    notification.classList.add("notification", type);
+    notification.textContent = message;
+
+    notificationContainer.appendChild(notification);
+
+    setTimeout(() => {
+        notification.classList.add("hide");
+        notification.addEventListener("transitionend", () => {
+            notification.remove();
+        });
+    }, 3000);
+}
+
+// HTML Templates for Pages (simplified for brevity, actual content in separate functions)
+function getSalesPageHTML() {
+    return `
+        <div class="page-header">
+            <h2>বিক্রয় কেন্দ্র</h2>
+            <div class="page-actions">
+                <input type="text" id="product-search" placeholder="পণ্য খুঁজুন..." onkeyup="searchProducts()">
+                <button class="btn btn-danger" onclick="clearCart()">সব মুছুন</button>
+            </div>
+        </div>
+        <div class="sales-grid">
+            <div class="products-section">
+                <div class="category-filter">
+                    <button class="btn btn-category active" data-category="all" onclick="filterProductsByCategory(\'all\')">সব</button>
+                    ${dataManager.getCategories().map(cat => `<button class="btn btn-category" data-category="${cat.id}" onclick="filterProductsByCategory(\'${cat.id}\\' )">${cat.icon} ${cat.name}</button>`).join("")}
+                </div>
+                <div class="product-list" id="product-list"></div>
+            </div>
+            <div class="cart-section">
+                <h3>বর্তমান অর্ডার</h3>
+                <div class="cart-items" id="cart-items"></div>
+                <div class="cart-summary">
+                    <div class="summary-row"><span>সাবটোটাল:</span> <span id="cart-subtotal">৳০.০০</span></div>
+                    <div class="summary-row"><span>ট্যাক্স:</span> <span id="cart-tax">৳০.০০</span></div>
+                    <div class="summary-row"><span>ডিসকাউন্ট:</span> <span id="cart-discount">৳০.০০</span></div>
+                    <div class="summary-row total"><span>মোট:</span> <span id="cart-total">৳০.০০</span></div>
+                </div>
+                <div class="customer-select">
+                    <label for="customer-id">গ্রাহক:</label>
+                    <select id="customer-id"></select>
+                </div>
+                <div class="payment-section">
+                    <label>পেমেন্ট পদ্ধতি:</label>
+                    <div class="payment-methods">
+                        <button class="btn btn-payment active" data-method="cash" onclick="selectPaymentMethod(\'cash\')">নগদ</button>
+                        <button class="btn btn-payment" data-method="card" onclick="selectPaymentMethod(\'card\')">কার্ড</button>
+                        <button class="btn btn-payment" data-method="mobile" onclick="selectPaymentMethod(\'mobile\')">মোবাইল</button>
+                    </div>
+                    <label for="amount-paid">প্রদত্ত পরিমাণ:</label>
+                    <input type="number" id="amount-paid" placeholder="০.০০" oninput="calculateChange()">
+                    <div class="change-display">ফেরত: <span id="amount-change">৳০.০০</span></div>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="completeSale()">সম্পন্ন করুন</button>
+            </div>
+        </div>
+    `;
+}
+
+function getProductsPageHTML() {
+    return `
+        <div class="page-header">
+            <h2>পণ্য ব্যবস্থাপনা</h2>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openAddProductModal()">নতুন পণ্য</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="table-actions">
+                <input type="text" id="product-search-table" placeholder="পণ্য খুঁজুন..." onkeyup="searchProductsTable()">
+                <select id="product-category-filter" onchange="filterProductsTableByCategory()">
+                    <option value="all">সব ক্যাটাগরি</option>
+                    ${dataManager.getCategories().map(cat => `<option value="${cat.id}">${cat.name}</option>`).join("")}
+                </select>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>পণ্যের নাম</th>
+                            <th>SKU</th>
+                            <th>ক্যাটাগরি</th>
+                            <th>মূল্য</th>
+                            <th>স্টক</th>
+                            <th>স্ট্যাটাস</th>
+                            <th>অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Product Modal -->
+        <div id="product-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>পণ্য যোগ/সম্পাদনা</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="product-form">
+                        <div class="form-group">
+                            <label for="product-name">পণ্যের নাম</label>
+                            <input type="text" id="product-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-sku">SKU</label>
+                            <input type="text" id="product-sku">
+                        </div>
+                        <div class="form-group">
+                            <label for="product-category">ক্যাটাগরি</label>
+                            <select id="product-category" required>
+                                <option value="">ক্যাটাগরি নির্বাচন করুন</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-price">মূল্য</label>
+                            <input type="number" id="product-price" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-stock">স্টক</label>
+                            <input type="number" id="product-stock" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-description">বিবরণ (ঐচ্ছিক)</label>
+                            <textarea id="product-description"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary modal-close">বাতিল</button>
+                            <button type="submit" class="btn btn-primary" onclick="saveProduct(event)">সংরক্ষণ করুন</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function getInventoryPageHTML() {
+    return `
+        <div class="page-header">
+            <h2>ইনভেন্টরি ব্যবস্থাপনা</h2>
+            <div class="page-actions">
+                <button class="btn btn-secondary" onclick="exportInventoryReport()">রিপোর্ট এক্সপোর্ট</button>
+                <button class="btn btn-primary" onclick="bulkStockAdjustment()">বাল্ক স্টক সমন্বয়</button>
+            </div>
+        </div>
+        <div class="inventory-grid">
+            <div class="card">
+                <h3>কম স্টক পণ্য</h3>
+                <div id="low-stock-products" class="low-stock-list"></div>
+            </div>
+            <div class="card">
+                <h3>স্টক তালিকা</h3>
+                <div class="table-actions">
+                    <input type="text" id="inventory-search" placeholder="পণ্য খুঁজুন..." onkeyup="searchInventory()">
+                    <select id="inventory-filter-status" onchange="filterInventoryByStock(this.value)">
+                        <option value="all">সব স্ট্যাটাস</option>
+                        <option value="in-stock">পর্যাপ্ত স্টক</option>
+                        <option value="low-stock">কম স্টক</option>
+                        <option value="out-of-stock">স্টক শেষ</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>পণ্যের নাম</th>
+                                <th>SKU</th>
+                                <th>ক্যাটাগরি</th>
+                                <th>স্টক</th>
+                                <th>স্ট্যাটাস</th>
+                                <th>অ্যাকশন</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card full-width">
+                <h3>ইনভেন্টরি লেনদেন</h3>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>তারিখ</th>
+                                <th>পণ্য</th>
+                                <th>প্রকার</th>
+                                <th>পরিমাণ</th>
+                                <th>স্টক পরিবর্তন</th>
+                                <th>নোট</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Adjustment Modal -->
+        <div id="stock-adjustment-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>স্টক সমন্বয়</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="stock-adjustment-form">
+                        <div class="form-group">
+                            <label>পণ্য:</label>
+                            <span id="adjust-product-name"></span>
+                            <input type="hidden" id="adjust-product-id">
+                        </div>
+                        <div class="form-group">
+                            <label>বর্তমান স্টক:</label>
+                            <span id="adjust-current-stock"></span>
+                        </div>
+                        <div class="form-group">
+                            <label>সমন্বয়ের প্রকার:</label>
+                            <div class="radio-group">
+                                <label><input type="radio" name="adjustment-type" value="add" checked> যোগ করুন</label>
+                                <label><input type="radio" name="adjustment-type" value="subtract"> বিয়োগ করুন</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="stock-adjustment">পরিমাণ</label>
+                            <input type="number" id="stock-adjustment" required min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="adjustment-note">নোট (ঐচ্ছিক)</label>
+                            <textarea id="adjustment-note"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary modal-close">বাতিল</button>
+                            <button type="submit" class="btn btn-primary" onclick="saveStockAdjustment()">সংরক্ষণ করুন</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function getCustomersPageHTML() {
+    return `
+        <div class="page-header">
+            <h2>গ্রাহক ব্যবস্থাপনা</h2>
+            <div class="page-actions">
+                <button class="btn btn-primary" onclick="openAddCustomerModal()">নতুন গ্রাহক</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="table-actions">
+                <input type="text" id="customers-search" placeholder="গ্রাহক খুঁজুন..." onkeyup="searchCustomersTable()">
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>নাম</th>
+                            <th>ফোন</th>
+                            <th>ইমেইল</th>
+                            <th>মোট ক্রয়</th>
+                            <th>সর্বশেষ ক্রয়</th>
+                            <th>অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customers-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Customer Modal -->
+        <div id="customer-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>গ্রাহক যোগ/সম্পাদনা</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="customer-form">
+                        <div class="form-group">
+                            <label for="customer-name">নাম</label>
+                            <input type="text" id="customer-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customer-phone">ফোন</label>
+                            <input type="text" id="customer-phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="customer-email">ইমেইল (ঐচ্ছিক)</label>
+                            <input type="email" id="customer-email">
+                        </div>
+                        <div class="form-group">
+                            <label for="customer-address">ঠিকানা (ঐচ্ছিক)</label>
+                            <textarea id="customer-address"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary modal-close">বাতিল</button>
+                            <button type="submit" class="btn btn-primary" onclick="saveCustomer()">সংরক্ষণ করুন</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function getReportsPageHTML() {
+    return `
+        <div class="page-header">
+            <h2>রিপোর্ট ও বিশ্লেষণ</h2>
+            <div class="page-actions">
+                <button class="btn btn-secondary" onclick="printReport()">প্রিন্ট রিপোর্ট</button>
+            </div>
+        </div>
+        <div class="report-grid">
+            <div class="card summary-card">
+                <h3>আজকের বিক্রয়</h3>
+                <span id="todays-sales" class="summary-value">৳০.০০</span>
+            </div>
+            <div class="card summary-card">
+                <h3>এই মাসের বিক্রয়</h3>
+                <span id="month-sales" class="summary-value">৳০.০০</span>
+            </div>
+            <div class="card summary-card">
+                <h3>মোট পণ্য</h3>
+                <span id="total-products" class="summary-value">০</span>
+            </div>
+            <div class="card summary-card">
+                <h3>মোট গ্রাহক</h3>
+                <span id="total-customers" class="summary-value">০</span>
+            </div>
+            <div class="card summary-card">
+                <h3>কম স্টক পণ্য</h3>
+                <span id="low-stock-count" class="summary-value">০</span>
+            </div>
+            <div class="card summary-card">
+                <h3>মোট বিক্রয়</h3>
+                <span id="total-sales" class="summary-value">৳০.০০</span>
+            </div>
+        </div>
+
+        <div class="card full-width">
+            <h3>বিক্রয় ওভারভিউ (গত ৩০ দিন)</h3>
+            <div id="sales-chart" class="sales-chart"></div>
+        </div>
+
+        <div class="report-grid">
+            <div class="card">
+                <h3>সেরা বিক্রেতা পণ্য</h3>
+                <div id="top-products" class="top-products-list"></div>
+            </div>
+            <div class="card">
+                <h3>সাম্প্রতিক বিক্রয়</h3>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>তারিখ ও সময়</th>
+                                <th>পণ্য</th>
+                                <th>গ্রাহক</th>
+                                <th>মোট</th>
+                                <th>পেমেন্ট</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-sales-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card full-width">
+            <h3>কাস্টম রিপোর্ট জেনারেট করুন</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="report-start-date">শুরুর তারিখ</label>
+                    <input type="date" id="report-start-date">
+                </div>
+                <div class="form-group">
+                    <label for="report-end-date">শেষের তারিখ</label>
+                    <input type="date" id="report-end-date">
+                </div>
+                <div class="form-group">
+                    <label for="report-type">রিপোর্টের প্রকার</label>
+                    <select id="report-type">
+                        <option value="sales">বিক্রয় রিপোর্ট</option>
+                        <option value="products">পণ্য রিপোর্ট</option>
+                        <option value="customers">গ্রাহক রিপোর্ট</option>
+                        <option value="inventory">ইনভেন্টরি রিপোর্ট</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="generateCustomReport()">রিপোর্ট তৈরি করুন</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function getSettingsPageHTML() {
+    return `
+        <div class="page-header">
+            <h2>সেটিংস</h2>
+        </div>
+        <div class="settings-grid">
+            <div class="card">
+                <h3>কোম্পানি তথ্য</h3>
+                <form id="company-settings-form">
+                    <div class="form-group">
+                        <label for="company-name">কোম্পানির নাম</label>
+                        <input type="text" id="company-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="company-address">ঠিকানা</label>
+                        <textarea id="company-address"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="company-phone">ফোন</label>
+                        <input type="text" id="company-phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="company-email">ইমেইল</label>
+                        <input type="email" id="company-email">
+                    </div>
+                    <div class="form-group">
+                        <label for="tax-rate">ট্যাক্স রেট (%)</label>
+                        <input type="number" id="tax-rate" step="0.01" min="0" max="100">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary" onclick="saveCompanySettings()">সংরক্ষণ করুন</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>সিস্টেম সেটিংস</h3>
+                <div class="form-group">
+                    <label for="currency">মুদ্রা</label>
+                    <select id="currency" disabled>
+                        <option value="BDT">৳ BDT (বাংলাদেশী টাকা)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sound-enabled">সাউন্ড চালু করুন</label>
+                    <input type="checkbox" id="sound-enabled" onchange="toggleSound()">
+                </div>
+                <div class="form-group">
+                    <label for="sound-volume">সাউন্ড ভলিউম: <span id="volume-display"></span></label>
+                    <input type="range" id="sound-volume" min="0" max="100" value="50" oninput="updateSoundVolume()">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="testSound()">টেস্ট সাউন্ড</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>ডেটা ব্যাকআপ ও পুনরুদ্ধার</h3>
+                <div class="form-group">
+                    <label>সর্বশেষ ব্যাকআপ:</label>
+                    <span id="last-backup"></span>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-primary" onclick="backupData()">ব্যাকআপ নিন</button>
+                    <button type="button" class="btn btn-secondary" onclick="restoreData()">পুনরুদ্ধার করুন</button>
+                </div>
+                <div class="form-actions mt-2">
+                    <button type="button" class="btn btn-info" onclick="exportAllData()">সম্পূর্ণ ডেটা এক্সপোর্ট</button>
+                    <button type="button" class="btn btn-info" onclick="importAllData()">সম্পূর্ণ ডেটা ইমপোর্ট</button>
+                </div>
+                <div class="form-actions mt-2">
+                    <button type="button" class="btn btn-danger" onclick="clearAllData()">সব ডেটা মুছুন</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>সিস্টেম তথ্য</h3>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="showSystemInfo()">সিস্টেম তথ্য দেখুন</button>
+                    <button type="button" class="btn btn-danger" onclick="resetToDefault()">ডিফল্ট সেটিংসে রিসেট</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Initial page load
+loadPage("sales");
+
+console.log("Main module loaded");
 

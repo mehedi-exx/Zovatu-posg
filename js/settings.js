@@ -1,480 +1,361 @@
-// Settings Management Functions
+// Settings Management Module
 
-// Load settings data
-function loadSettings() {
-    const settings = POS.getSettings();
-    
-    // Load company settings
-    loadCompanySettings(settings.company);
-    
-    // Load POS settings
-    loadPOSSettings(settings.pos);
-    
-    // Load print settings
-    loadPrintSettings(settings.print);
+// Load settings page
+function loadSettingsPage() {
+    loadCompanySettings();
+    loadSoundSettings();
+    loadBackupSettings();
 }
 
 // Load company settings
-function loadCompanySettings(companySettings) {
-    const fields = {
-        'company-name': companySettings.name,
-        'company-address': companySettings.address,
-        'company-phone': companySettings.phone,
-        'company-email': companySettings.email,
-        'company-tax-number': companySettings.tax_number,
-        'company-logo-url': companySettings.logo_url
-    };
+function loadCompanySettings() {
+    const settings = dataManager.getSettings();
     
-    Object.entries(fields).forEach(([fieldId, value]) => {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.value = value || '';
-        }
-    });
+    if (settings) {
+        const companyNameInput = document.getElementById("company-name");
+        const companyAddressInput = document.getElementById("company-address");
+        const companyPhoneInput = document.getElementById("company-phone");
+        const companyEmailInput = document.getElementById("company-email");
+        const taxRateInput = document.getElementById("tax-rate");
+        
+        if (companyNameInput) companyNameInput.value = settings.companyName || "";
+        if (companyAddressInput) companyAddressInput.value = settings.companyAddress || "";
+        if (companyPhoneInput) companyPhoneInput.value = settings.companyPhone || "";
+        if (companyEmailInput) companyEmailInput.value = settings.companyEmail || "";
+        if (taxRateInput) taxRateInput.value = settings.taxRate || 0;
+    }
 }
 
-// Load POS settings
-function loadPOSSettings(posSettings) {
-    const fields = {
-        'default-tax-rate': posSettings.default_tax_rate,
-        'currency': posSettings.currency,
-        'decimal-places': posSettings.decimal_places,
-        'auto-print-receipt': posSettings.auto_print_receipt,
-        'low-stock-alert': posSettings.low_stock_alert
-    };
+// Load sound settings
+function loadSoundSettings() {
+    const soundEnabledCheckbox = document.getElementById("sound-enabled");
+    const soundVolumeSlider = document.getElementById("sound-volume");
     
-    Object.entries(fields).forEach(([fieldId, value]) => {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            if (field.type === 'checkbox') {
-                field.checked = value;
-            } else {
-                field.value = value;
-            }
-        }
-    });
+    if (soundEnabledCheckbox) {
+        soundEnabledCheckbox.checked = soundManager.isEnabled();
+    }
+    
+    if (soundVolumeSlider) {
+        soundVolumeSlider.value = soundManager.getVolume() * 100;
+        updateVolumeDisplay();
+    }
 }
 
-// Load print settings
-function loadPrintSettings(printSettings) {
-    const fields = {
-        'receipt-width': printSettings.receipt_width,
-        'header-text': printSettings.header_text,
-        'footer-text': printSettings.footer_text
-    };
+// Load backup settings
+function loadBackupSettings() {
+    const lastBackupElement = document.getElementById("last-backup");
+    const lastBackup = localStorage.getItem("pos_last_backup");
     
-    Object.entries(fields).forEach(([fieldId, value]) => {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.value = value || '';
+    if (lastBackupElement) {
+        if (lastBackup) {
+            lastBackupElement.textContent = formatDate(lastBackup) + " " + formatTime(lastBackup);
+        } else {
+            lastBackupElement.textContent = "কখনো ব্যাকআপ নেওয়া হয়নি";
         }
-    });
+    }
 }
 
-// Handle company settings form submission
-function handleCompanySettings(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const companyData = {
-        name: formData.get('company-name') || document.getElementById('company-name').value,
-        address: formData.get('company-address') || document.getElementById('company-address').value,
-        phone: formData.get('company-phone') || document.getElementById('company-phone').value,
-        email: formData.get('company-email') || document.getElementById('company-email').value,
-        tax_number: formData.get('company-tax-number') || document.getElementById('company-tax-number')?.value || '',
-        logo_url: formData.get('company-logo-url') || document.getElementById('company-logo-url')?.value || ''
+// Save company settings
+function saveCompanySettings() {
+    const settings = {
+        companyName: document.getElementById("company-name").value.trim(),
+        companyAddress: document.getElementById("company-address").value.trim(),
+        companyPhone: document.getElementById("company-phone").value.trim(),
+        companyEmail: document.getElementById("company-email").value.trim(),
+        taxRate: parseFloat(document.getElementById("tax-rate").value) || 0
     };
     
-    // Validation
-    const errors = validateForm(e.target, {
-        'company-name': [
-            { type: 'required', message: 'কোম্পানির নাম আবশ্যক' }
-        ],
-        'company-phone': [
-            { type: 'phone', message: 'সঠিক ফোন নাম্বার দিন' }
-        ],
-        'company-email': [
-            { type: 'email', message: 'সঠিক ইমেইল ঠিকানা দিন' }
-        ]
-    });
-    
-    if (errors.length > 0) {
-        showToast(errors[0].message, 'error');
+    // Validate email if provided
+    if (settings.companyEmail && !validateEmail(settings.companyEmail)) {
+        showNotification("সঠিক ইমেল ঠিকানা দিন", "error");
+        soundManager.playError();
         return;
     }
     
-    showLoading();
-    
-    const currentSettings = POS.getSettings();
-    const updatedSettings = {
-        ...currentSettings,
-        company: companyData
-    };
-    
-    const success = POS.data.updateSettings(updatedSettings);
-    
-    hideLoading();
-    
-    if (success) {
-        showToast('কোম্পানির তথ্য সফলভাবে আপডেট করা হয়েছে', 'success');
-    } else {
-        showToast('কোম্পানির তথ্য আপডেট করতে সমস্যা হয়েছে', 'error');
-    }
-}
-
-// Handle POS settings form submission
-function handlePOSSettings(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const posData = {
-        default_tax_rate: parseNumber(formData.get('default-tax-rate') || document.getElementById('default-tax-rate').value),
-        currency: formData.get('currency') || document.getElementById('currency').value,
-        decimal_places: parseInt(formData.get('decimal-places') || document.getElementById('decimal-places')?.value || 2),
-        auto_print_receipt: document.getElementById('auto-print-receipt').checked,
-        low_stock_alert: document.getElementById('low-stock-alert')?.checked !== false
-    };
-    
-    // Validation
-    if (posData.default_tax_rate < 0 || posData.default_tax_rate > 100) {
-        showToast('ট্যাক্স রেট ০ থেকে ১০০ এর মধ্যে হতে হবে', 'error');
+    // Validate phone if provided
+    if (settings.companyPhone && !validatePhone(settings.companyPhone)) {
+        showNotification("সঠিক ফোন নম্বর দিন", "error");
+        soundManager.playError();
         return;
     }
     
-    showLoading();
+    // Validate tax rate
+    if (settings.taxRate < 0 || settings.taxRate > 100) {
+        showNotification("ট্যাক্স রেট ০-১০০% এর মধ্যে হতে হবে", "error");
+        soundManager.playError();
+        return;
+    }
     
-    const currentSettings = POS.getSettings();
-    const updatedSettings = {
-        ...currentSettings,
-        pos: posData
-    };
-    
-    const success = POS.data.updateSettings(updatedSettings);
-    
-    hideLoading();
-    
-    if (success) {
-        showToast('POS সেটিংস সফলভাবে আপডেট করা হয়েছে', 'success');
+    if (dataManager.updateSettings(settings)) {
+        showNotification("কোম্পানি সেটিংস সংরক্ষিত হয়েছে", "success");
+        soundManager.playSuccess();
+        
+        // Update header with company name if provided
+        updateHeaderCompanyName(settings.companyName);
     } else {
-        showToast('POS সেটিংস আপডেট করতে সমস্যা হয়েছে', 'error');
+        showNotification("সেটিংস সংরক্ষণে ব্যর্থ", "error");
+        soundManager.playError();
     }
 }
 
-// Handle print settings form submission
-function handlePrintSettings(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const printData = {
-        receipt_width: formData.get('receipt-width') || document.getElementById('receipt-width')?.value || '80mm',
-        header_text: formData.get('header-text') || document.getElementById('header-text')?.value || '',
-        footer_text: formData.get('footer-text') || document.getElementById('footer-text')?.value || ''
-    };
-    
-    showLoading();
-    
-    const currentSettings = POS.getSettings();
-    const updatedSettings = {
-        ...currentSettings,
-        print: printData
-    };
-    
-    const success = POS.data.updateSettings(updatedSettings);
-    
-    hideLoading();
-    
-    if (success) {
-        showToast('প্রিন্ট সেটিংস সফলভাবে আপডেট করা হয়েছে', 'success');
-    } else {
-        showToast('প্রিন্ট সেটিংস আপডেট করতে সমস্যা হয়েছে', 'error');
+// Update header company name
+function updateHeaderCompanyName(companyName) {
+    const logoElement = document.querySelector(".logo h1");
+    if (logoElement && companyName) {
+        logoElement.textContent = companyName;
     }
 }
 
-// Export all data
-function exportData() {
+// Toggle sound
+function toggleSound() {
+    const enabled = document.getElementById("sound-enabled").checked;
+    soundManager.setEnabled(enabled);
+    
+    if (enabled) {
+        soundManager.testSound();
+        showNotification("সাউন্ড চালু করা হয়েছে", "success");
+    } else {
+        showNotification("সাউন্ড বন্ধ করা হয়েছে", "success");
+    }
+}
+
+// Update sound volume
+function updateSoundVolume() {
+    const volume = document.getElementById("sound-volume").value / 100;
+    soundManager.setVolume(volume);
+    updateVolumeDisplay();
+    
+    // Test sound with new volume
+    soundManager.testSound();
+}
+
+// Update volume display
+function updateVolumeDisplay() {
+    const volumeDisplay = document.getElementById("volume-display");
+    const volume = document.getElementById("sound-volume").value;
+    
+    if (volumeDisplay) {
+        volumeDisplay.textContent = volume + "%";
+    }
+}
+
+// Test sound
+function testSound() {
+    soundManager.testSound("click");
+    showNotification("টেস্ট সাউন্ড বাজানো হয়েছে", "info");
+}
+
+// Backup data
+function backupData() {
     try {
-        showLoading();
-        POS.data.createBackup();
-        hideLoading();
-        showToast('ডেটা সফলভাবে এক্সপোর্ট করা হয়েছে', 'success');
+        dataManager.backupData();
+        localStorage.setItem("pos_last_backup", new Date().toISOString());
+        loadBackupSettings(); // Refresh backup info
     } catch (error) {
-        hideLoading();
-        showToast('ডেটা এক্সপোর্ট করতে সমস্যা হয়েছে', 'error');
-        console.error('Export error:', error);
+        console.error("Backup error:", error);
+        showNotification("ব্যাকআপ নিতে ব্যর্থ", "error");
+        soundManager.playError();
     }
 }
 
-// Import data
-function importData() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
+// Restore data
+function restoreData() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
     
     input.onchange = function(e) {
         const file = e.target.files[0];
         if (!file) return;
         
-        if (confirm('ডেটা ইমপোর্ট করলে বর্তমান সব ডেটা মুছে যাবে। আপনি কি নিশ্চিত?')) {
-            showLoading();
-            
-            POS.data.restoreBackup(file)
-                .then(() => {
-                    hideLoading();
-                    showToast('ডেটা সফলভাবে ইমপোর্ট করা হয়েছে', 'success');
+        if (confirm("বর্তমান সব ডেটা মুছে যাবে। আপনি কি নিশ্চিত?")) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const jsonData = e.target.result;
+                if (dataManager.importAllData(jsonData)) {
+                    showNotification("ডেটা সফলভাবে পুনরুদ্ধার হয়েছে", "success");
+                    soundManager.playSuccess();
                     
-                    // Reload current page data
+                    // Reload current page
                     setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                })
-                .catch((error) => {
-                    hideLoading();
-                    showToast('ডেটা ইমপোর্ট করতে সমস্যা হয়েছে', 'error');
-                    console.error('Import error:', error);
-                });
+                        window.location.reload();
+                    }, 2000);
+                }
+            };
+            reader.readAsText(file);
         }
     };
     
     input.click();
 }
 
-// Reset all data
-function resetAllData() {
-    if (confirm('সব ডেটা মুছে ফেলা হবে এবং ডিফল্ট সেটিংস পুনরুদ্ধার করা হবে। আপনি কি নিশ্চিত?')) {
-        if (confirm('এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না। আপনি কি সত্যিই নিশ্চিত?')) {
-            showLoading();
-            
-            try {
-                // Clear all localStorage data
-                Storage.clear();
-                
-                hideLoading();
-                showToast('সব ডেটা মুছে ফেলা হয়েছে', 'success');
-                
-                // Reload page to reinitialize with default data
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } catch (error) {
-                hideLoading();
-                showToast('ডেটা মুছতে সমস্যা হয়েছে', 'error');
-                console.error('Reset error:', error);
-            }
-        }
+// Clear all data
+function clearAllData() {
+    const confirmText = "সব ডেটা মুছে ফেলতে 'DELETE' লিখুন:";
+    const userInput = prompt(confirmText);
+    
+    if (userInput === "DELETE") {
+        dataManager.clearAllData();
+        showNotification("সব ডেটা মুছে ফেলা হয়েছে", "success");
+        soundManager.playSuccess();
+        
+        // Reload page after 2 seconds
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+    } else if (userInput !== null) {
+        showNotification("ভুল টেক্সট। ডেটা মুছে ফেলা হয়নি", "error");
+        soundManager.playError();
     }
 }
 
-// Test print functionality
-function testPrint() {
-    const settings = POS.getSettings();
+// Export all data
+function exportAllData() {
+    try {
+        const data = dataManager.exportAllData();
+        const filename = `pos_full_backup_${formatDate(new Date()).replace(/\//g, "-")}.json`;
+        downloadFile(data, filename, "application/json");
+        
+        showNotification("সম্পূর্ণ ডেটা এক্সপোর্ট হয়েছে", "success");
+        soundManager.playSuccess();
+    } catch (error) {
+        console.error("Export error:", error);
+        showNotification("ডেটা এক্সপোর্ট করতে ব্যর্থ", "error");
+        soundManager.playError();
+    }
+}
+
+// Import all data
+function importAllData() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
     
-    const testReceiptContent = `
-        <div class="receipt">
-            <div class="text-center mb-2">
-                <h3>${settings.company.name}</h3>
-                <p>${settings.company.address}</p>
-                <p>ফোন: ${settings.company.phone}</p>
-                ${settings.company.email ? `<p>ইমেইল: ${settings.company.email}</p>` : ''}
-            </div>
-            
-            <div class="border-bottom mb-2">
-                <p><strong>টেস্ট প্রিন্ট</strong></p>
-                <p><strong>তারিখ:</strong> ${formatDate(new Date())} ${formatTime(new Date())}</p>
-            </div>
-            
-            <table style="width: 100%; margin-bottom: 10px;">
-                <thead>
-                    <tr>
-                        <th style="text-align: left;">পণ্য</th>
-                        <th style="text-align: center;">পরিমাণ</th>
-                        <th style="text-align: right;">দাম</th>
-                        <th style="text-align: right;">মোট</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>টেস্ট পণ্য</td>
-                        <td style="text-align: center;">1</td>
-                        <td style="text-align: right;">৳১০০.০০</td>
-                        <td style="text-align: right;">৳১০০.০০</td>
-                    </tr>
-                </tbody>
-            </table>
-            
-            <div class="border-top">
-                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1em;">
-                    <span>মোট:</span>
-                    <span>৳১০০.০০</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>প্রদত্ত:</span>
-                    <span>৳১০০.০০</span>
-                </div>
-            </div>
-            
-            <div class="text-center mt-2">
-                <p>${settings.print.header_text}</p>
-                <p>${settings.print.footer_text}</p>
-            </div>
-        </div>
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (confirm("বর্তমান সব ডেটা প্রতিস্থাপিত হবে। আপনি কি নিশ্চিত?")) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const jsonData = e.target.result;
+                if (dataManager.importAllData(jsonData)) {
+                    // Reload page to reflect changes
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                }
+            };
+            reader.readAsText(file);
+        }
+    };
+    
+    input.click();
+}
+
+// Get system info
+function getSystemInfo() {
+    const products = dataManager.getProducts();
+    const customers = dataManager.getCustomers();
+    const sales = dataManager.getSales();
+    const transactions = dataManager.getInventoryTransactions();
+    
+    const info = {
+        totalProducts: products.length,
+        totalCustomers: customers.length,
+        totalSales: sales.length,
+        totalTransactions: transactions.length,
+        totalSalesAmount: dataManager.getTotalSales(),
+        lowStockProducts: dataManager.getLowStockProducts(10).length,
+        storageUsed: JSON.stringify({
+            products,
+            customers,
+            sales,
+            transactions
+        }).length
+    };
+    
+    return info;
+}
+
+// Show system info
+function showSystemInfo() {
+    const info = getSystemInfo();
+    
+    const infoText = `
+সিস্টেম তথ্য:
+- মোট পণ্য: ${info.totalProducts}
+- মোট গ্রাহক: ${info.totalCustomers}
+- মোট বিক্রয়: ${info.totalSales}
+- মোট লেনদেন: ${info.totalTransactions}
+- মোট বিক্রয় পরিমাণ: ${formatCurrency(info.totalSalesAmount)}
+- কম স্টক পণ্য: ${info.lowStockProducts}
+- স্টোরেজ ব্যবহার: ${(info.storageUsed / 1024).toFixed(2)} KB
     `;
     
-    // Create temporary element for printing
-    const tempDiv = document.createElement('div');
-    tempDiv.id = 'test-receipt-content';
-    tempDiv.innerHTML = testReceiptContent;
-    tempDiv.style.display = 'none';
-    document.body.appendChild(tempDiv);
-    
-    // Print
-    printContent('test-receipt-content');
-    
-    // Remove temporary element
-    setTimeout(() => {
-        document.body.removeChild(tempDiv);
-    }, 1000);
-    
-    showToast('টেস্ট প্রিন্ট পাঠানো হয়েছে', 'info');
+    alert(infoText);
 }
 
-// Manage categories
-function manageCategories() {
-    const categories = POS.data.getAll('categories');
+// Reset to default settings
+function resetToDefault() {
+    if (confirm("সব সেটিংস ডিফল্ট করতে চান?")) {
+        // Reset company settings
+        document.getElementById("company-name").value = "";
+        document.getElementById("company-address").value = "";
+        document.getElementById("company-phone").value = "";
+        document.getElementById("company-email").value = "";
+        document.getElementById("tax-rate").value = "0";
+        
+        // Reset sound settings
+        document.getElementById("sound-enabled").checked = true;
+        document.getElementById("sound-volume").value = "50";
+        
+        // Save default settings
+        const defaultSettings = {
+            companyName: "",
+            companyAddress: "",
+            companyPhone: "",
+            companyEmail: "",
+            taxRate: 0
+        };
+        
+        dataManager.saveSettings(defaultSettings);
+        soundManager.setEnabled(true);
+        soundManager.setVolume(0.5);
+        
+        updateVolumeDisplay();
+        showNotification("সেটিংস ডিফল্ট করা হয়েছে", "success");
+        soundManager.playSuccess();
+    }
+}
+
+// Auto backup (can be called periodically)
+function autoBackup() {
+    const lastBackup = localStorage.getItem("pos_last_backup");
+    const now = new Date();
     
-    let categoryList = 'বর্তমান ক্যাটাগরিসমূহ:\n\n';
-    categories.forEach((category, index) => {
-        categoryList += `${index + 1}. ${category.name} (${category.id})\n`;
-    });
+    if (!lastBackup) {
+        // First time, create backup
+        backupData();
+        return;
+    }
     
-    categoryList += '\nনতুন ক্যাটাগরি যোগ করতে চান?';
+    const lastBackupDate = new Date(lastBackup);
+    const daysSinceBackup = getDaysBetween(now, lastBackupDate);
     
-    if (confirm(categoryList)) {
-        const newCategoryName = prompt('নতুন ক্যাটাগরির নাম:');
-        if (newCategoryName) {
-            const newCategory = {
-                id: newCategoryName.toLowerCase().replace(/\s+/g, '_'),
-                name: newCategoryName,
-                description: '',
-                parent_id: null,
-                is_active: true
-            };
-            
-            const created = POS.data.create('categories', newCategory);
-            if (created) {
-                showToast('নতুন ক্যাটাগরি যোগ করা হয়েছে', 'success');
-                
-                // Reload categories in product forms
-                loadCategories();
-            } else {
-                showToast('ক্যাটাগরি যোগ করতে সমস্যা হয়েছে', 'error');
-            }
+    // Auto backup every 7 days
+    if (daysSinceBackup >= 7) {
+        if (confirm("গত ৭ দিনে কোনো ব্যাকআপ নেওয়া হয়নি। এখন ব্যাকআপ নিতে চান?")) {
+            backupData();
         }
     }
 }
 
-// Manage users (basic implementation)
-function manageUsers() {
-    const users = POS.data.getAll('users');
-    
-    let userList = 'বর্তমান ব্যবহারকারীগণ:\n\n';
-    users.forEach((user, index) => {
-        userList += `${index + 1}. ${user.full_name} (${user.username}) - ${user.role}\n`;
-    });
-    
-    alert(userList);
-}
-
-// Change password (basic implementation)
-function changePassword() {
-    const currentPassword = prompt('বর্তমান পাসওয়ার্ড:');
-    if (!currentPassword) return;
-    
-    // In a real app, you would verify the current password
-    if (currentPassword !== 'admin123') {
-        showToast('বর্তমান পাসওয়ার্ড ভুল', 'error');
-        return;
-    }
-    
-    const newPassword = prompt('নতুন পাসওয়ার্ড:');
-    if (!newPassword) return;
-    
-    const confirmPassword = prompt('নতুন পাসওয়ার্ড নিশ্চিত করুন:');
-    if (newPassword !== confirmPassword) {
-        showToast('পাসওয়ার্ড মিলছে না', 'error');
-        return;
-    }
-    
-    if (newPassword.length < 6) {
-        showToast('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে', 'error');
-        return;
-    }
-    
-    // Update password
-    const updated = POS.data.update('users', 'admin', { password: newPassword });
-    if (updated) {
-        showToast('পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে', 'success');
-    } else {
-        showToast('পাসওয়ার্ড পরিবর্তন করতে সমস্যা হয়েছে', 'error');
-    }
-}
-
-// Setup settings form handlers
-function setupSettingsFormHandlers() {
-    const companyForm = document.getElementById('company-settings-form');
-    const posForm = document.getElementById('pos-settings-form');
-    
-    if (companyForm) {
-        companyForm.addEventListener('submit', handleCompanySettings);
-    }
-    
-    if (posForm) {
-        posForm.addEventListener('submit', handlePOSSettings);
-    }
-    
-    // Add save buttons to forms
-    addSaveButtonsToForms();
-}
-
-// Add save buttons to settings forms
-function addSaveButtonsToForms() {
-    const forms = ['company-settings-form', 'pos-settings-form'];
-    
-    forms.forEach(formId => {
-        const form = document.getElementById(formId);
-        if (form && !form.querySelector('.save-button')) {
-            const saveButton = document.createElement('button');
-            saveButton.type = 'submit';
-            saveButton.className = 'btn btn-primary save-button';
-            saveButton.innerHTML = '<i class="fas fa-save"></i> সংরক্ষণ';
-            saveButton.style.marginTop = '1rem';
-            
-            form.appendChild(saveButton);
-        }
-    });
-}
-
-// Initialize settings page
-function initializeSettingsPage() {
-    setupSettingsFormHandlers();
-    loadSettings();
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize settings page if we're on it
-    if (document.getElementById('settings-page')) {
-        initializeSettingsPage();
-    }
+// Initialize settings when page loads
+document.addEventListener("DOMContentLoaded", function() {
+    // Check for auto backup on app start
+    setTimeout(autoBackup, 5000); // Check after 5 seconds
 });
 
-// Global functions for HTML onclick events
-window.exportData = exportData;
-window.importData = importData;
-window.resetAllData = resetAllData;
-window.testPrint = testPrint;
-window.manageCategories = manageCategories;
-window.manageUsers = manageUsers;
-window.changePassword = changePassword;
-window.handleCompanySettings = handleCompanySettings;
-window.handlePOSSettings = handlePOSSettings;
+console.log("Settings module loaded");
 

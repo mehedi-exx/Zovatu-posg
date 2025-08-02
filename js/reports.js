@@ -1,437 +1,445 @@
-// Reports Management Functions
+// Reports Management Module
 
-// Generate reports based on date range
-function generateReports() {
-    const startDate = document.getElementById('start-date').value;
-    const endDate = document.getElementById('end-date').value;
+// Load reports page
+function loadReportsPage() {
+    loadSalesOverview();
+    loadTopProducts();
+    loadRecentSales();
+    updateReportCards();
+}
+
+// Update report cards
+function updateReportCards() {
+    // Today's sales
+    const todaysSales = dataManager.getTodaysSalesTotal();
+    const todaysSalesElement = document.getElementById("todays-sales");
+    if (todaysSalesElement) {
+        todaysSalesElement.textContent = formatCurrency(todaysSales);
+    }
+
+    // This month's sales
+    const monthSales = dataManager.getThisMonthsSalesTotal();
+    const monthSalesElement = document.getElementById("month-sales");
+    if (monthSalesElement) {
+        monthSalesElement.textContent = formatCurrency(monthSales);
+    }
+
+    // Total products
+    const totalProducts = dataManager.getTotalProducts();
+    const totalProductsElement = document.getElementById("total-products");
+    if (totalProductsElement) {
+        totalProductsElement.textContent = totalProducts;
+    }
+
+    // Total customers
+    const totalCustomers = dataManager.getTotalCustomers();
+    const totalCustomersElement = document.getElementById("total-customers");
+    if (totalCustomersElement) {
+        totalCustomersElement.textContent = totalCustomers;
+    }
+
+    // Low stock products count
+    const lowStockCount = dataManager.getLowStockProducts(10).length;
+    const lowStockElement = document.getElementById("low-stock-count");
+    if (lowStockElement) {
+        lowStockElement.textContent = lowStockCount;
+    }
+
+    // Total sales
+    const totalSales = dataManager.getTotalSales();
+    const totalSalesElement = document.getElementById("total-sales");
+    if (totalSalesElement) {
+        totalSalesElement.textContent = formatCurrency(totalSales);
+    }
+}
+
+// Load sales overview
+function loadSalesOverview() {
+    const sales = dataManager.getSales();
+    const last30Days = getLast30DaysData(sales);
+    
+    // Create simple chart data
+    const chartContainer = document.getElementById("sales-chart");
+    if (chartContainer) {
+        chartContainer.innerHTML = createSimpleChart(last30Days);
+    }
+}
+
+// Get last 30 days data
+function getLast30DaysData(sales) {
+    const data = [];
+    const today = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        
+        const dayStart = getStartOfDay(date);
+        const dayEnd = getEndOfDay(date);
+        
+        const daySales = sales.filter(sale => {
+            const saleDate = new Date(sale.createdAt);
+            return saleDate >= dayStart && saleDate <= dayEnd;
+        });
+        
+        const totalAmount = daySales.reduce((sum, sale) => sum + sale.total, 0);
+        
+        data.push({
+            date: formatDate(date),
+            amount: totalAmount,
+            count: daySales.length
+        });
+    }
+    
+    return data;
+}
+
+// Create simple chart
+function createSimpleChart(data) {
+    const maxAmount = Math.max(...data.map(d => d.amount));
+    const chartHeight = 200;
+    
+    if (maxAmount === 0) {
+        return `
+            <div class="empty-state">
+                <div class="empty-state-icon">📊</div>
+                <h3>কোনো বিক্রয় ডেটা নেই</h3>
+                <p>গত ৩০ দিনে কোনো বিক্রয় হয়নি</p>
+            </div>
+        `;
+    }
+    
+    const bars = data.map((item, index) => {
+        const height = maxAmount > 0 ? (item.amount / maxAmount) * chartHeight : 0;
+        const isToday = index === data.length - 1;
+        
+        return `
+            <div class="chart-bar ${isToday ? 'today' : ''}" 
+                 style="height: ${height}px;" 
+                 title="${item.date}: ${formatCurrency(item.amount)} (${item.count} বিক্রয়)">
+                <div class="bar-value">${item.count}</div>
+            </div>
+        `;
+    }).join("");
+    
+    return `
+        <div class="chart-container">
+            <div class="chart-title">গত ৩০ দিনের বিক্রয়</div>
+            <div class="chart-bars">${bars}</div>
+            <div class="chart-legend">
+                <span class="legend-item">
+                    <span class="legend-color today"></span>
+                    আজ
+                </span>
+                <span class="legend-item">
+                    <span class="legend-color"></span>
+                    পূর্ববর্তী দিন
+                </span>
+            </div>
+        </div>
+    `;
+}
+
+// Load top products
+function loadTopProducts() {
+    const topProducts = dataManager.getTopSellingProducts(10);
+    const container = document.getElementById("top-products");
+    
+    if (!container) return;
+    
+    if (topProducts.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🏆</div>
+                <h3>কোনো বিক্রয় ডেটা নেই</h3>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = topProducts.map((item, index) => `
+        <div class="top-product-item">
+            <div class="rank">#${index + 1}</div>
+            <div class="product-info">
+                <div class="product-name">${item.productName}</div>
+                <div class="product-stats">
+                    বিক্রয়: ${item.quantity} টি | আয়: ${formatCurrency(item.revenue)}
+                </div>
+            </div>
+        </div>
+    `).join("");
+}
+
+// Load recent sales
+function loadRecentSales() {
+    const sales = dataManager.getSales().slice(-10).reverse(); // Last 10 sales
+    const tableBody = document.getElementById("recent-sales-body");
+    
+    if (!tableBody) return;
+    
+    if (sales.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🛒</div>
+                        <h3>কোনো বিক্রয় নেই</h3>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tableBody.innerHTML = sales.map(sale => {
+        const customer = sale.customerId ? dataManager.getCustomerById(sale.customerId) : null;
+        return `
+            <tr>
+                <td>${formatDate(sale.createdAt)} ${formatTime(sale.createdAt)}</td>
+                <td>${sale.items.length} টি পণ্য</td>
+                <td>${customer ? customer.name : 'অজানা গ্রাহক'}</td>
+                <td>${formatCurrency(sale.total)}</td>
+                <td>
+                    <span class="payment-method ${sale.paymentMethod}">
+                        ${getPaymentMethodName(sale.paymentMethod)}
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+// Get payment method name
+function getPaymentMethodName(method) {
+    const methods = {
+        'cash': 'নগদ',
+        'card': 'কার্ড',
+        'mobile': 'মোবাইল পেমেন্ট'
+    };
+    return methods[method] || method;
+}
+
+// Generate custom report
+function generateCustomReport() {
+    const startDate = document.getElementById("report-start-date").value;
+    const endDate = document.getElementById("report-end-date").value;
+    const reportType = document.getElementById("report-type").value;
     
     if (!startDate || !endDate) {
-        showToast('শুরু এবং শেষের তারিখ নির্বাচন করুন', 'warning');
+        showNotification("তারিখ নির্বাচন করুন", "error");
+        soundManager.playError();
         return;
     }
     
     if (new Date(startDate) > new Date(endDate)) {
-        showToast('শুরুর তারিখ শেষের তারিখের আগে হতে হবে', 'error');
+        showNotification("শুরুর তারিখ শেষের তারিখের আগে হতে হবে", "error");
+        soundManager.playError();
         return;
     }
     
-    showLoading();
+    const sales = dataManager.getSalesByDateRange(startDate, endDate + "T23:59:59");
     
-    try {
-        generateSalesSummary(startDate, endDate);
-        generateTopProducts(startDate, endDate);
-        generatePaymentMethodsReport(startDate, endDate);
-        
-        hideLoading();
-        showToast('রিপোর্ট সফলভাবে তৈরি হয়েছে', 'success');
-    } catch (error) {
-        hideLoading();
-        showToast('রিপোর্ট তৈরি করতে সমস্যা হয়েছে', 'error');
-        console.error('Report generation error:', error);
+    switch (reportType) {
+        case "sales":
+            generateSalesReport(sales, startDate, endDate);
+            break;
+        case "products":
+            generateProductsReport(sales, startDate, endDate);
+            break;
+        case "customers":
+            generateCustomersReport(sales, startDate, endDate);
+            break;
+        case "inventory":
+            generateInventoryReport(startDate, endDate);
+            break;
     }
 }
 
-// Generate sales summary report
-function generateSalesSummary(startDate, endDate) {
-    const salesReport = POS.data.getSalesReport(startDate, endDate);
-    const salesSummaryContainer = document.getElementById('sales-summary');
+// Generate sales report
+function generateSalesReport(sales, startDate, endDate) {
+    if (sales.length === 0) {
+        showNotification("নির্বাচিত সময়ে কোনো বিক্রয় নেই", "error");
+        return;
+    }
     
-    if (!salesSummaryContainer) return;
+    const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+    const totalItems = sales.reduce((sum, sale) => sum + sale.items.length, 0);
+    const averageSale = totalSales / sales.length;
     
-    const totalProfit = calculateTotalProfit(startDate, endDate);
-    const averageSale = salesReport.total_sales > 0 ? salesReport.total_revenue / salesReport.total_sales : 0;
+    // Group by payment method
+    const paymentMethods = groupBy(sales, "paymentMethod");
     
-    salesSummaryContainer.innerHTML = `
-        <div class="report-stats">
-            <div class="stat-item">
-                <div class="stat-value">${salesReport.total_sales}</div>
-                <div class="stat-label">মোট বিক্রয়</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">${formatCurrency(salesReport.total_revenue)}</div>
-                <div class="stat-label">মোট আয়</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">${formatCurrency(totalProfit)}</div>
-                <div class="stat-label">মোট লাভ</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">${formatCurrency(averageSale)}</div>
-                <div class="stat-label">গড় বিক্রয়</div>
-            </div>
-        </div>
-        
-        <div class="report-details">
-            <h4>বিস্তারিত তথ্য</h4>
-            <table class="report-table">
-                <tr>
-                    <td>মোট ডিসকাউন্ট:</td>
-                    <td class="text-right">${formatCurrency(salesReport.total_discount)}</td>
-                </tr>
-                <tr>
-                    <td>মোট ট্যাক্স:</td>
-                    <td class="text-right">${formatCurrency(salesReport.total_tax)}</td>
-                </tr>
-                <tr>
-                    <td>গড় ডিসকাউন্ট:</td>
-                    <td class="text-right">${formatCurrency(salesReport.total_sales > 0 ? salesReport.total_discount / salesReport.total_sales : 0)}</td>
-                </tr>
-            </table>
-        </div>
-        
-        <div class="daily-sales">
-            <h4>দৈনিক বিক্রয়</h4>
-            <div class="daily-sales-chart">
-                ${generateDailySalesChart(salesReport.daily_sales)}
-            </div>
-        </div>
-    `;
+    // Create CSV content
+    const headers = ["Date", "Time", "Items", "Customer", "Total", "Payment Method"];
+    const csvContent = [
+        `Sales Report (${startDate} to ${endDate})`,
+        `Total Sales: ${formatCurrency(totalSales)}`,
+        `Total Transactions: ${sales.length}`,
+        `Total Items Sold: ${totalItems}`,
+        `Average Sale: ${formatCurrency(averageSale)}`,
+        "",
+        headers.join(","),
+        ...sales.map(sale => {
+            const customer = sale.customerId ? dataManager.getCustomerById(sale.customerId) : null;
+            return [
+                formatDate(sale.createdAt),
+                formatTime(sale.createdAt),
+                sale.items.length,
+                customer ? customer.name : "Walk-in Customer",
+                sale.total.toFixed(2),
+                getPaymentMethodName(sale.paymentMethod)
+            ].join(",");
+        })
+    ].join("\n");
+    
+    // Download file
+    const filename = `sales_report_${startDate}_to_${endDate}.csv`;
+    downloadFile(csvContent, filename, "text/csv");
+    
+    showNotification("বিক্রয় রিপোর্ট তৈরি হয়েছে", "success");
+    soundManager.playSuccess();
 }
 
-// Calculate total profit
-function calculateTotalProfit(startDate, endDate) {
-    const sales = POS.getSales({ start_date: startDate, end_date: endDate });
-    let totalProfit = 0;
+// Generate products report
+function generateProductsReport(sales, startDate, endDate) {
+    const productSales = {};
     
     sales.forEach(sale => {
         sale.items.forEach(item => {
-            const product = POS.data.read('products', item.product_id);
-            if (product) {
-                const profit = (item.unit_price - product.purchase_price) * item.quantity;
-                totalProfit += profit;
+            if (productSales[item.productId]) {
+                productSales[item.productId].quantity += item.quantity;
+                productSales[item.productId].revenue += item.total;
+            } else {
+                productSales[item.productId] = {
+                    name: item.name,
+                    quantity: item.quantity,
+                    revenue: item.total
+                };
             }
         });
     });
     
-    return totalProfit;
-}
-
-// Generate daily sales chart (simple text-based)
-function generateDailySalesChart(dailySales) {
-    if (Object.keys(dailySales).length === 0) {
-        return '<p class="text-center text-muted">কোনো বিক্রয় ডেটা নেই</p>';
-    }
+    const sortedProducts = Object.values(productSales)
+        .sort((a, b) => b.quantity - a.quantity);
     
-    let chartHTML = '<div class="simple-chart">';
-    
-    Object.entries(dailySales).forEach(([date, data]) => {
-        const formattedDate = formatDate(new Date(date));
-        chartHTML += `
-            <div class="chart-row">
-                <div class="chart-label">${formattedDate}</div>
-                <div class="chart-bar">
-                    <div class="chart-value">${data.count} বিক্রয়</div>
-                    <div class="chart-amount">${formatCurrency(data.amount)}</div>
-                </div>
-            </div>
-        `;
-    });
-    
-    chartHTML += '</div>';
-    return chartHTML;
-}
-
-// Generate top products report
-function generateTopProducts(startDate, endDate) {
-    const topProducts = POS.data.getTopProducts(startDate, endDate, 10);
-    const topProductsContainer = document.getElementById('top-products');
-    
-    if (!topProductsContainer) return;
-    
-    if (topProducts.length === 0) {
-        topProductsContainer.innerHTML = '<p class="text-center text-muted">কোনো বিক্রয় ডেটা নেই</p>';
+    if (sortedProducts.length === 0) {
+        showNotification("নির্বাচিত সময়ে কোনো পণ্য বিক্রয় নেই", "error");
         return;
     }
     
-    let tableHTML = `
-        <table class="report-table">
-            <thead>
-                <tr>
-                    <th>র‍্যাঙ্ক</th>
-                    <th>পণ্যের নাম</th>
-                    <th>বিক্রিত পরিমাণ</th>
-                    <th>মোট আয়</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    // Create CSV content
+    const headers = ["Product Name", "Quantity Sold", "Revenue"];
+    const csvContent = [
+        `Products Report (${startDate} to ${endDate})`,
+        "",
+        headers.join(","),
+        ...sortedProducts.map(product => [
+            `"${product.name}"`,
+            product.quantity,
+            product.revenue.toFixed(2)
+        ].join(","))
+    ].join("\n");
     
-    topProducts.forEach((product, index) => {
-        tableHTML += `
-            <tr>
-                <td class="text-center">${index + 1}</td>
-                <td>${product.product_name}</td>
-                <td class="text-center">${product.quantity_sold}</td>
-                <td class="text-right">${formatCurrency(product.total_revenue)}</td>
-            </tr>
-        `;
-    });
+    // Download file
+    const filename = `products_report_${startDate}_to_${endDate}.csv`;
+    downloadFile(csvContent, filename, "text/csv");
     
-    tableHTML += '</tbody></table>';
-    topProductsContainer.innerHTML = tableHTML;
+    showNotification("পণ্য রিপোর্ট তৈরি হয়েছে", "success");
+    soundManager.playSuccess();
 }
 
-// Generate payment methods report
-function generatePaymentMethodsReport(startDate, endDate) {
-    const salesReport = POS.data.getSalesReport(startDate, endDate);
-    const paymentMethodsContainer = document.getElementById('payment-methods');
-    
-    if (!paymentMethodsContainer) return;
-    
-    if (Object.keys(salesReport.payment_methods).length === 0) {
-        paymentMethodsContainer.innerHTML = '<p class="text-center text-muted">কোনো পেমেন্ট ডেটা নেই</p>';
-        return;
-    }
-    
-    let chartHTML = '<div class="payment-methods-chart">';
-    
-    Object.entries(salesReport.payment_methods).forEach(([method, data]) => {
-        const methodName = getPaymentMethodName(method);
-        const percentage = salesReport.total_revenue > 0 ? (data.amount / salesReport.total_revenue * 100).toFixed(1) : 0;
-        
-        chartHTML += `
-            <div class="payment-method-item">
-                <div class="payment-method-info">
-                    <div class="payment-method-name">${methodName}</div>
-                    <div class="payment-method-stats">
-                        <span>${data.count} লেনদেন</span>
-                        <span>${formatCurrency(data.amount)}</span>
-                        <span>(${percentage}%)</span>
-                    </div>
-                </div>
-                <div class="payment-method-bar">
-                    <div class="payment-method-fill" style="width: ${percentage}%"></div>
-                </div>
-            </div>
-        `;
-    });
-    
-    chartHTML += '</div>';
-    paymentMethodsContainer.innerHTML = chartHTML;
-}
-
-// Get payment method name in Bengali
-function getPaymentMethodName(method) {
-    const methodNames = {
-        'cash': 'নগদ',
-        'card': 'কার্ড',
-        'mobile': 'মোবাইল পেমেন্ট',
-        'bank': 'ব্যাংক ট্রান্সফার',
-        'check': 'চেক'
-    };
-    return methodNames[method] || method;
-}
-
-// Export sales report
-function exportSalesReport() {
-    const startDate = document.getElementById('start-date').value;
-    const endDate = document.getElementById('end-date').value;
-    
-    if (!startDate || !endDate) {
-        showToast('শুরু এবং শেষের তারিখ নির্বাচন করুন', 'warning');
-        return;
-    }
-    
-    const sales = POS.getSales({ start_date: startDate, end_date: endDate });
-    const reportData = sales.map(sale => ({
-        'ইনভয়েস নং': sale.invoice_number,
-        'তারিখ': formatDate(sale.sale_date),
-        'সময়': formatTime(sale.sale_date),
-        'গ্রাহক': sale.customer_id ? POS.data.read('customers', sale.customer_id)?.name || 'অজানা' : 'ওয়াক-ইন',
-        'সাবটোটাল': sale.subtotal,
-        'ডিসকাউন্ট': sale.total_discount,
-        'ট্যাক্স': sale.total_tax,
-        'মোট': sale.grand_total,
-        'পেমেন্ট পদ্ধতি': getPaymentMethodName(sale.payment_method),
-        'পেমেন্ট স্ট্যাটাস': sale.payment_status === 'paid' ? 'পরিশোধিত' : sale.payment_status === 'partial' ? 'আংশিক' : 'অপরিশোধিত',
-        'প্রদত্ত': sale.paid_amount,
-        'বাকি': sale.due_amount
-    }));
-    
-    const filename = `sales_report_${startDate}_to_${endDate}.json`;
-    exportToJSON(reportData, filename);
-    showToast('বিক্রয় রিপোর্ট এক্সপোর্ট করা হয়েছে', 'success');
-}
-
-// Generate profit/loss report
-function generateProfitLossReport() {
-    const startDate = document.getElementById('start-date').value;
-    const endDate = document.getElementById('end-date').value;
-    
-    if (!startDate || !endDate) {
-        showToast('শুরু এবং শেষের তারিখ নির্বাচন করুন', 'warning');
-        return;
-    }
-    
-    const sales = POS.getSales({ start_date: startDate, end_date: endDate });
-    let totalRevenue = 0;
-    let totalCost = 0;
-    let totalTax = 0;
-    let totalDiscount = 0;
+// Generate customers report
+function generateCustomersReport(sales, startDate, endDate) {
+    const customerSales = {};
     
     sales.forEach(sale => {
-        totalRevenue += sale.grand_total;
-        totalTax += sale.total_tax;
-        totalDiscount += sale.total_discount;
-        
-        sale.items.forEach(item => {
-            const product = POS.data.read('products', item.product_id);
-            if (product) {
-                totalCost += product.purchase_price * item.quantity;
+        if (sale.customerId) {
+            if (customerSales[sale.customerId]) {
+                customerSales[sale.customerId].totalSales += sale.total;
+                customerSales[sale.customerId].transactionCount += 1;
+            } else {
+                const customer = dataManager.getCustomerById(sale.customerId);
+                customerSales[sale.customerId] = {
+                    name: customer ? customer.name : "Unknown",
+                    phone: customer ? customer.phone : "N/A",
+                    totalSales: sale.total,
+                    transactionCount: 1
+                };
             }
-        });
+        }
     });
     
-    const grossProfit = totalRevenue - totalCost;
-    const netProfit = grossProfit - totalTax;
-    const profitMargin = totalRevenue > 0 ? (grossProfit / totalRevenue * 100).toFixed(2) : 0;
+    const sortedCustomers = Object.values(customerSales)
+        .sort((a, b) => b.totalSales - a.totalSales);
     
-    const reportHTML = `
-        <div class="profit-loss-report">
-            <h3>লাভ-ক্ষতির হিসাব</h3>
-            <p><strong>সময়কাল:</strong> ${formatDate(startDate)} থেকে ${formatDate(endDate)}</p>
-            
-            <table class="report-table">
-                <tr>
-                    <td>মোট আয়:</td>
-                    <td class="text-right font-bold">${formatCurrency(totalRevenue)}</td>
-                </tr>
-                <tr>
-                    <td>মোট খরচ:</td>
-                    <td class="text-right">${formatCurrency(totalCost)}</td>
-                </tr>
-                <tr>
-                    <td>মোট ডিসকাউন্ট:</td>
-                    <td class="text-right">${formatCurrency(totalDiscount)}</td>
-                </tr>
-                <tr>
-                    <td>মোট ট্যাক্স:</td>
-                    <td class="text-right">${formatCurrency(totalTax)}</td>
-                </tr>
-                <tr class="border-top">
-                    <td><strong>গ্রস প্রফিট:</strong></td>
-                    <td class="text-right font-bold ${grossProfit >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(grossProfit)}</td>
-                </tr>
-                <tr>
-                    <td><strong>নেট প্রফিট:</strong></td>
-                    <td class="text-right font-bold ${netProfit >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(netProfit)}</td>
-                </tr>
-                <tr>
-                    <td><strong>প্রফিট মার্জিন:</strong></td>
-                    <td class="text-right font-bold">${profitMargin}%</td>
-                </tr>
-            </table>
-        </div>
-    `;
-    
-    // Show in a modal or alert
-    alert(reportHTML.replace(/<[^>]*>/g, '\n').replace(/\n+/g, '\n'));
-}
-
-// Generate customer report
-function generateCustomerReport() {
-    const customers = POS.getCustomers();
-    const sales = POS.getSales();
-    
-    const customerStats = customers.map(customer => {
-        const customerSales = sales.filter(sale => sale.customer_id === customer.id);
-        const totalPurchases = customerSales.reduce((sum, sale) => sum + sale.grand_total, 0);
-        const totalOrders = customerSales.length;
-        const averageOrder = totalOrders > 0 ? totalPurchases / totalOrders : 0;
-        const lastPurchase = customerSales.length > 0 ? customerSales[0].sale_date : null;
-        
-        return {
-            name: customer.name,
-            phone: customer.phone,
-            totalPurchases,
-            totalOrders,
-            averageOrder,
-            currentBalance: customer.current_balance,
-            loyaltyPoints: customer.loyalty_points || 0,
-            lastPurchase
-        };
-    });
-    
-    // Sort by total purchases
-    customerStats.sort((a, b) => b.totalPurchases - a.totalPurchases);
-    
-    const reportData = customerStats.map((customer, index) => ({
-        'র‍্যাঙ্ক': index + 1,
-        'নাম': customer.name,
-        'ফোন': customer.phone,
-        'মোট ক্রয়': formatCurrency(customer.totalPurchases),
-        'মোট অর্ডার': customer.totalOrders,
-        'গড় অর্ডার': formatCurrency(customer.averageOrder),
-        'বর্তমান ব্যালেন্স': formatCurrency(customer.currentBalance),
-        'লয়ালটি পয়েন্ট': customer.loyaltyPoints,
-        'শেষ ক্রয়': customer.lastPurchase ? formatDate(customer.lastPurchase) : 'কোনো ক্রয় নেই'
-    }));
-    
-    const filename = `customer_report_${new Date().toISOString().split('T')[0]}.json`;
-    exportToJSON(reportData, filename);
-    showToast('গ্রাহক রিপোর্ট এক্সপোর্ট করা হয়েছে', 'success');
-}
-
-// Set default date range (last 30 days)
-function setDefaultDateRange() {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
-    
-    const startDateInput = document.getElementById('start-date');
-    const endDateInput = document.getElementById('end-date');
-    
-    if (startDateInput && endDateInput) {
-        startDateInput.value = startDate.toISOString().split('T')[0];
-        endDateInput.value = endDate.toISOString().split('T')[0];
+    if (sortedCustomers.length === 0) {
+        showNotification("নির্বাচিত সময়ে কোনো গ্রাহক বিক্রয় নেই", "error");
+        return;
     }
+    
+    // Create CSV content
+    const headers = ["Customer Name", "Phone", "Total Sales", "Transactions"];
+    const csvContent = [
+        `Customers Report (${startDate} to ${endDate})`,
+        "",
+        headers.join(","),
+        ...sortedCustomers.map(customer => [
+            `"${customer.name}"`,
+            `"${customer.phone}"`,
+            customer.totalSales.toFixed(2),
+            customer.transactionCount
+        ].join(","))
+    ].join("\n");
+    
+    // Download file
+    const filename = `customers_report_${startDate}_to_${endDate}.csv`;
+    downloadFile(csvContent, filename, "text/csv");
+    
+    showNotification("গ্রাহক রিপোর্ট তৈরি হয়েছে", "success");
+    soundManager.playSuccess();
 }
 
-// Quick date range selectors
-function setDateRange(days) {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+// Generate inventory report
+function generateInventoryReport(startDate, endDate) {
+    const products = dataManager.getProducts();
     
-    document.getElementById('start-date').value = startDate.toISOString().split('T')[0];
-    document.getElementById('end-date').value = endDate.toISOString().split('T')[0];
-    
-    generateReports();
-}
-
-// Initialize reports page
-function initializeReportsPage() {
-    setDefaultDateRange();
-    
-    // Add quick date range buttons
-    const dateRangeContainer = document.querySelector('.date-range');
-    if (dateRangeContainer) {
-        const quickButtons = document.createElement('div');
-        quickButtons.className = 'quick-date-buttons';
-        quickButtons.style.marginLeft = '1rem';
-        
-        quickButtons.innerHTML = `
-            <button class="btn btn-secondary" onclick="setDateRange(7)" style="margin-right: 0.5rem;">৭ দিন</button>
-            <button class="btn btn-secondary" onclick="setDateRange(30)" style="margin-right: 0.5rem;">৩০ দিন</button>
-            <button class="btn btn-secondary" onclick="setDateRange(90)">৯০ দিন</button>
-        `;
-        
-        dateRangeContainer.appendChild(quickButtons);
+    if (products.length === 0) {
+        showNotification("কোনো পণ্য নেই", "error");
+        return;
     }
+    
+    // Create CSV content
+    const headers = ["Product Name", "SKU", "Category", "Current Stock", "Stock Value", "Status"];
+    const csvContent = [
+        `Inventory Report (${formatDate(new Date())})`,
+        "",
+        headers.join(","),
+        ...products.map(product => {
+            const stockValue = product.stock * product.price;
+            const status = getStockStatus(product.stock).text;
+            return [
+                `"${product.name}"`,
+                `"${product.sku}"`,
+                `"${getCategoryName(product.category)}"`,
+                product.stock,
+                stockValue.toFixed(2),
+                `"${status}"`
+            ].join(",");
+        })
+    ].join("\n");
+    
+    // Download file
+    const filename = `inventory_report_${formatDate(new Date()).replace(/\//g, "-")}.csv`;
+    downloadFile(csvContent, filename, "text/csv");
+    
+    showNotification("ইনভেন্টরি রিপোর্ট তৈরি হয়েছে", "success");
+    soundManager.playSuccess();
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize reports page if we're on it
-    if (document.getElementById('reports-page')) {
-        initializeReportsPage();
-    }
-});
+// Print report
+function printReport() {
+    window.print();
+}
 
-// Global functions for HTML onclick events
-window.generateReports = generateReports;
-window.exportSalesReport = exportSalesReport;
-window.generateProfitLossReport = generateProfitLossReport;
-window.generateCustomerReport = generateCustomerReport;
-window.setDateRange = setDateRange;
+console.log("Reports module loaded");
 

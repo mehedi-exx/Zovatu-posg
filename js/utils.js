@@ -1,128 +1,32 @@
 // Utility Functions for POS System
 
-// Generate unique ID
-function generateUniqueId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
-
 // Format currency
-function formatCurrency(amount, currency = 'BDT') {
-    const symbols = {
-        'BDT': '৳',
-        'USD': '$',
-        'EUR': '€'
-    };
-    
-    const symbol = symbols[currency] || '৳';
-    return `${symbol}${parseFloat(amount).toFixed(2)}`;
+function formatCurrency(amount) {
+    return '৳' + parseFloat(amount).toFixed(2);
 }
 
 // Format date
 function formatDate(date) {
     if (!date) return '';
     const d = new Date(date);
-    return d.toLocaleDateString('bn-BD');
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
 }
 
 // Format time
 function formatTime(date) {
     if (!date) return '';
     const d = new Date(date);
-    return d.toLocaleTimeString('bn-BD', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-    });
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
 }
 
-// Update current date and time
-function updateDateTime() {
-    const now = new Date();
-    const dateElement = document.getElementById('current-date');
-    const timeElement = document.getElementById('current-time');
-    
-    if (dateElement) {
-        dateElement.textContent = formatDate(now);
-    }
-    
-    if (timeElement) {
-        timeElement.textContent = formatTime(now);
-    }
-}
-
-// Show loading spinner
-function showLoading() {
-    const spinner = document.getElementById('loading-spinner');
-    if (spinner) {
-        spinner.style.display = 'flex';
-    }
-}
-
-// Hide loading spinner
-function hideLoading() {
-    const spinner = document.getElementById('loading-spinner');
-    if (spinner) {
-        spinner.style.display = 'none';
-    }
-}
-
-// Show toast notification
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    
-    const icon = getToastIcon(type);
-    toast.innerHTML = `
-        <i class="${icon}"></i>
-        <span>${message}</span>
-    `;
-    
-    container.appendChild(toast);
-    
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-        if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
-        }
-    }, 3000);
-}
-
-// Get toast icon based on type
-function getToastIcon(type) {
-    const icons = {
-        'success': 'fas fa-check-circle',
-        'error': 'fas fa-exclamation-circle',
-        'warning': 'fas fa-exclamation-triangle',
-        'info': 'fas fa-info-circle'
-    };
-    return icons[type] || icons['info'];
-}
-
-// Show modal
-function showModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-// Close modal
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-        
-        // Reset form if exists
-        const form = modal.querySelector('form');
-        if (form) {
-            form.reset();
-        }
-    }
+// Generate unique ID
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
 // Validate email
@@ -131,30 +35,120 @@ function validateEmail(email) {
     return re.test(email);
 }
 
-// Validate phone number (Bangladesh format)
+// Validate phone
 function validatePhone(phone) {
-    const re = /^(\+88)?01[3-9]\d{8}$/;
-    return re.test(phone);
+    const re = /^[0-9+\-\s()]+$/;
+    return re.test(phone) && phone.length >= 10;
 }
 
-// Calculate percentage
-function calculatePercentage(value, total) {
-    if (total === 0) return 0;
-    return (value / total) * 100;
-}
-
-// Calculate discount
-function calculateDiscount(amount, discount, type = 'percentage') {
-    if (type === 'percentage') {
-        return (amount * discount) / 100;
-    } else {
-        return Math.min(discount, amount);
+// Show notification
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existing = document.querySelector('.notification');
+    if (existing) {
+        existing.remove();
     }
+
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-message">${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+        </div>
+    `;
+
+    // Add notification styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 90px;
+        right: 20px;
+        z-index: 3000;
+        background: ${type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : '#d1ecf1'};
+        color: ${type === 'success' ? '#155724' : type === 'error' ? '#721c24' : '#0c5460'};
+        border: 1px solid ${type === 'success' ? '#c3e6cb' : type === 'error' ? '#f5c6cb' : '#bee5eb'};
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        animation: slideInRight 0.3s ease-out;
+        max-width: 400px;
+        min-width: 300px;
+    `;
+
+    document.body.appendChild(notification);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 5000);
 }
 
-// Calculate tax
-function calculateTax(amount, taxRate) {
-    return (amount * taxRate) / 100;
+// Add notification animations to head
+if (!document.querySelector('#notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        .notification-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            opacity: 0.7;
+        }
+        .notification-close:hover {
+            opacity: 1;
+            background: rgba(0,0,0,0.1);
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Show loading
+function showLoading(element) {
+    if (!element) return;
+    element.innerHTML = '<div class="loading">লোড হচ্ছে...</div>';
+}
+
+// Hide loading
+function hideLoading(element, content) {
+    if (!element) return;
+    element.innerHTML = content || '';
 }
 
 // Debounce function
@@ -170,240 +164,267 @@ function debounce(func, wait) {
     };
 }
 
-// Search filter function
-function filterItems(items, searchTerm, fields) {
-    if (!searchTerm) return items;
-    
-    const term = searchTerm.toLowerCase();
-    return items.filter(item => {
-        return fields.some(field => {
-            const value = getNestedValue(item, field);
-            return value && value.toString().toLowerCase().includes(term);
-        });
+// Throttle function
+function throttle(func, limit) {
+    let inThrottle;
+    return function() {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    }
+}
+
+// Deep clone object
+function deepClone(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (obj instanceof Date) return new Date(obj.getTime());
+    if (obj instanceof Array) return obj.map(item => deepClone(item));
+    if (typeof obj === 'object') {
+        const clonedObj = {};
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                clonedObj[key] = deepClone(obj[key]);
+            }
+        }
+        return clonedObj;
+    }
+}
+
+// Check if object is empty
+function isEmpty(obj) {
+    if (obj === null || obj === undefined) return true;
+    if (Array.isArray(obj)) return obj.length === 0;
+    if (typeof obj === 'object') return Object.keys(obj).length === 0;
+    if (typeof obj === 'string') return obj.trim().length === 0;
+    return false;
+}
+
+// Sanitize HTML
+function sanitizeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Get query parameter
+function getQueryParam(param) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(param);
+}
+
+// Set query parameter
+function setQueryParam(param, value) {
+    const url = new URL(window.location);
+    url.searchParams.set(param, value);
+    window.history.replaceState({}, '', url);
+}
+
+// Download file
+function downloadFile(content, filename, contentType = 'application/json') {
+    const blob = new Blob([content], { type: contentType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+// Read file
+function readFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsText(file);
     });
 }
 
-// Get nested object value
-function getNestedValue(obj, path) {
-    return path.split('.').reduce((current, key) => current && current[key], obj);
+// Calculate percentage
+function calculatePercentage(value, total) {
+    if (total === 0) return 0;
+    return ((value / total) * 100).toFixed(2);
+}
+
+// Round to decimal places
+function roundTo(num, decimals = 2) {
+    return Math.round(num * Math.pow(10, decimals)) / Math.pow(10, decimals);
+}
+
+// Check if mobile device
+function isMobile() {
+    return window.innerWidth <= 768;
+}
+
+// Check if tablet device
+function isTablet() {
+    return window.innerWidth > 768 && window.innerWidth <= 1024;
+}
+
+// Smooth scroll to element
+function scrollToElement(element, offset = 0) {
+    if (!element) return;
+    const elementPosition = element.offsetTop - offset;
+    window.scrollTo({
+        top: elementPosition,
+        behavior: 'smooth'
+    });
+}
+
+// Copy to clipboard
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showNotification('ক্লিপবোর্ডে কপি হয়েছে', 'success');
+        return true;
+    } catch (err) {
+        console.error('Failed to copy: ', err);
+        showNotification('কপি করতে ব্যর্থ', 'error');
+        return false;
+    }
+}
+
+// Format number with commas
+function formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// Parse number from formatted string
+function parseNumber(str) {
+    return parseFloat(str.replace(/[^0-9.-]+/g, '')) || 0;
+}
+
+// Escape regex special characters
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Get file extension
+function getFileExtension(filename) {
+    return filename.slice((filename.lastIndexOf('.') - 1 >>> 0) + 2);
+}
+
+// Capitalize first letter
+function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Convert to title case
+function toTitleCase(str) {
+    return str.replace(/\w\S*/g, (txt) => 
+        txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+    );
+}
+
+// Remove duplicates from array
+function removeDuplicates(arr, key = null) {
+    if (key) {
+        return arr.filter((item, index, self) => 
+            index === self.findIndex(t => t[key] === item[key])
+        );
+    }
+    return [...new Set(arr)];
 }
 
 // Sort array of objects
-function sortItems(items, field, direction = 'asc') {
-    return items.sort((a, b) => {
-        const aVal = getNestedValue(a, field);
-        const bVal = getNestedValue(b, field);
+function sortBy(arr, key, direction = 'asc') {
+    return arr.sort((a, b) => {
+        const aVal = a[key];
+        const bVal = b[key];
         
-        if (aVal < bVal) return direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return direction === 'asc' ? 1 : -1;
-        return 0;
-    });
-}
-
-// Export data to JSON
-function exportToJSON(data, filename) {
-    const dataStr = JSON.stringify(data, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = filename;
-    link.click();
-}
-
-// Import data from JSON file
-function importFromJSON(file, callback) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            callback(data);
-        } catch (error) {
-            showToast('ফাইল পড়তে সমস্যা হয়েছে', 'error');
-        }
-    };
-    reader.readAsText(file);
-}
-
-// Print content
-function printContent(contentId) {
-    const content = document.getElementById(contentId);
-    if (!content) return;
-    
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>প্রিন্ট</title>
-                <style>
-                    body { font-family: 'Courier New', monospace; margin: 20px; }
-                    .receipt { max-width: 300px; margin: 0 auto; }
-                    .text-center { text-align: center; }
-                    .text-right { text-align: right; }
-                    .border-top { border-top: 1px dashed #000; padding-top: 10px; }
-                    .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 10px; }
-                    .mb-2 { margin-bottom: 10px; }
-                    .font-bold { font-weight: bold; }
-                </style>
-            </head>
-            <body>
-                ${content.innerHTML}
-            </body>
-        </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
-    printWindow.close();
-}
-
-// Local storage helpers
-const Storage = {
-    set: function(key, value) {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-            return true;
-        } catch (error) {
-            console.error('Storage set error:', error);
-            return false;
-        }
-    },
-    
-    get: function(key, defaultValue = null) {
-        try {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : defaultValue;
-        } catch (error) {
-            console.error('Storage get error:', error);
-            return defaultValue;
-        }
-    },
-    
-    remove: function(key) {
-        try {
-            localStorage.removeItem(key);
-            return true;
-        } catch (error) {
-            console.error('Storage remove error:', error);
-            return false;
-        }
-    },
-    
-    clear: function() {
-        try {
-            localStorage.clear();
-            return true;
-        } catch (error) {
-            console.error('Storage clear error:', error);
-            return false;
-        }
-    }
-};
-
-// Event delegation helper
-function delegate(parent, selector, event, handler) {
-    parent.addEventListener(event, function(e) {
-        if (e.target.matches(selector) || e.target.closest(selector)) {
-            handler.call(e.target.closest(selector), e);
+        if (direction === 'asc') {
+            return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+        } else {
+            return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
         }
     });
 }
 
-// Initialize utility functions
-document.addEventListener('DOMContentLoaded', function() {
-    // Update date and time every second
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
+// Group array by key
+function groupBy(arr, key) {
+    return arr.reduce((groups, item) => {
+        const group = item[key];
+        groups[group] = groups[group] || [];
+        groups[group].push(item);
+        return groups;
+    }, {});
+}
+
+// Calculate age from date
+function calculateAge(birthDate) {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
     
-    // Close modals when clicking outside
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('modal')) {
-            const modalId = e.target.id;
-            closeModal(modalId);
-        }
-    });
-    
-    // Close modals with Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            const openModal = document.querySelector('.modal[style*="block"]');
-            if (openModal) {
-                closeModal(openModal.id);
-            }
-        }
-    });
-});
-
-// Number formatting helpers
-function formatNumber(num, decimals = 2) {
-    return parseFloat(num).toFixed(decimals);
-}
-
-function parseNumber(str) {
-    const num = parseFloat(str);
-    return isNaN(num) ? 0 : num;
-}
-
-// Validation helpers
-function validateRequired(value) {
-    return value !== null && value !== undefined && value.toString().trim() !== '';
-}
-
-function validateMinLength(value, minLength) {
-    return value && value.toString().length >= minLength;
-}
-
-function validateMaxLength(value, maxLength) {
-    return !value || value.toString().length <= maxLength;
-}
-
-function validateRange(value, min, max) {
-    const num = parseFloat(value);
-    return !isNaN(num) && num >= min && num <= max;
-}
-
-// Form validation
-function validateForm(formElement, rules) {
-    const errors = [];
-    
-    for (const [fieldName, fieldRules] of Object.entries(rules)) {
-        const field = formElement.querySelector(`[name="${fieldName}"], #${fieldName}`);
-        if (!field) continue;
-        
-        const value = field.value;
-        
-        for (const rule of fieldRules) {
-            if (rule.type === 'required' && !validateRequired(value)) {
-                errors.push({ field: fieldName, message: rule.message });
-                break;
-            }
-            
-            if (rule.type === 'email' && value && !validateEmail(value)) {
-                errors.push({ field: fieldName, message: rule.message });
-                break;
-            }
-            
-            if (rule.type === 'phone' && value && !validatePhone(value)) {
-                errors.push({ field: fieldName, message: rule.message });
-                break;
-            }
-            
-            if (rule.type === 'minLength' && !validateMinLength(value, rule.value)) {
-                errors.push({ field: fieldName, message: rule.message });
-                break;
-            }
-            
-            if (rule.type === 'maxLength' && !validateMaxLength(value, rule.value)) {
-                errors.push({ field: fieldName, message: rule.message });
-                break;
-            }
-            
-            if (rule.type === 'range' && !validateRange(value, rule.min, rule.max)) {
-                errors.push({ field: fieldName, message: rule.message });
-                break;
-            }
-        }
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
     }
     
-    return errors;
+    return age;
+}
+
+// Get days between dates
+function getDaysBetween(date1, date2) {
+    const oneDay = 24 * 60 * 60 * 1000;
+    const firstDate = new Date(date1);
+    const secondDate = new Date(date2);
+    
+    return Math.round(Math.abs((firstDate - secondDate) / oneDay));
+}
+
+// Check if date is today
+function isToday(date) {
+    const today = new Date();
+    const checkDate = new Date(date);
+    
+    return checkDate.getDate() === today.getDate() &&
+           checkDate.getMonth() === today.getMonth() &&
+           checkDate.getFullYear() === today.getFullYear();
+}
+
+// Check if date is this month
+function isThisMonth(date) {
+    const today = new Date();
+    const checkDate = new Date(date);
+    
+    return checkDate.getMonth() === today.getMonth() &&
+           checkDate.getFullYear() === today.getFullYear();
+}
+
+// Get start of day
+function getStartOfDay(date = new Date()) {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    return start;
+}
+
+// Get end of day
+function getEndOfDay(date = new Date()) {
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+    return end;
+}
+
+// Get start of month
+function getStartOfMonth(date = new Date()) {
+    const start = new Date(date);
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    return start;
+}
+
+// Get end of month
+function getEndOfMonth(date = new Date()) {
+    const end = new Date(date);
+    end.setMonth(end.getMonth() + 1, 0);
+    end.setHours(23, 59, 59, 999);
+    return end;
 }
 

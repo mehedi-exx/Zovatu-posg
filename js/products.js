@@ -1,424 +1,453 @@
-// Product Management Functions
+// Products Management Module
+
+// Load products page
+function loadProductsPage() {
+    loadProductsTable();
+    loadCategoriesForSelect(); // Ensure categories are loaded for the product form
+}
 
 // Load products table
 function loadProductsTable() {
-    const products = POS.getProducts();
-    const tableBody = document.querySelector('#products-table tbody');
+    const products = dataManager.getProducts();
+    const tableBody = document.getElementById("products-table-body");
     
     if (!tableBody) return;
-    
-    tableBody.innerHTML = '';
-    
+
     if (products.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center">কোনো পণ্য পাওয়া যায়নি</td>
+                <td colspan="7" class="text-center">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <h3>কোনো পণ্য নেই</h3>
+                        <p>নতুন পণ্য যোগ করুন</p>
+                    </div>
+                </td>
             </tr>
         `;
         return;
     }
-    
-    products.forEach(product => {
-        const row = createProductTableRow(product);
-        tableBody.appendChild(row);
-    });
-}
 
-// Create product table row
-function createProductTableRow(product) {
-    const row = document.createElement('tr');
-    
-    const stockStatus = product.stock_quantity === 0 ? 'out-of-stock' : 
-                       product.stock_quantity <= product.min_stock_level ? 'low-stock' : 'in-stock';
-    
-    const stockStatusText = product.stock_quantity === 0 ? 'স্টক নেই' : 
-                           product.stock_quantity <= product.min_stock_level ? 'কম স্টক' : 'স্টক আছে';
-    
-    row.innerHTML = `
-        <td>
-            <div class="product-image" style="width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; background: #f3f4f6; border-radius: 0.25rem;">
-                <i class="fas fa-box"></i>
-            </div>
-        </td>
-        <td>
-            <div>
-                <div class="font-bold">${product.name}</div>
-                <div class="text-muted" style="font-size: 0.8rem;">${product.description || ''}</div>
-            </div>
-        </td>
-        <td>${product.sku || '-'}</td>
-        <td>
-            <span class="category-badge">${getCategoryName(product.category)}</span>
-        </td>
-        <td class="text-right font-bold">${formatCurrency(product.selling_price)}</td>
-        <td class="text-center">
-            <span class="status-badge ${stockStatus}">${stockStatusText}</span>
-            <div style="font-size: 0.8rem; margin-top: 0.25rem;">${product.stock_quantity} ${product.unit}</div>
-        </td>
-        <td>
-            <div class="action-buttons-table">
-                <button class="action-btn edit" onclick="editProduct('${product.id}')" title="সম্পাদনা">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="action-btn view" onclick="viewProduct('${product.id}')" title="দেখুন">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="action-btn delete" onclick="deleteProduct('${product.id}')" title="মুছুন">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </td>
-    `;
-    
-    return row;
+    tableBody.innerHTML = products.map(product => `
+        <tr>
+            <td>${product.name}</td>
+            <td>${product.sku}</td>
+            <td>${getCategoryName(product.category)}</td>
+            <td>${formatCurrency(product.price)}</td>
+            <td>${product.stock}</td>
+            <td>
+                <span class="status-badge ${product.stock > 0 ? "status-active" : "status-inactive"}">
+                    ${product.stock > 0 ? "সক্রিয়" : "নিষ্ক্রিয়"}
+                </span>
+                ${product.stock <= 10 && product.stock > 0 ? 
+                    "<span class="status-badge status-low-stock">কম স্টক</span>" : ""}
+            </td>
+            <td>
+                <button class="action-btn" onclick="editProduct(\'${product.id}\')">সম্পাদনা</button>
+                <button class="action-btn delete" onclick="deleteProduct(\'${product.id}\')">মুছুন</button>
+            </td>
+        </tr>
+    `).join("");
 }
 
 // Get category name
 function getCategoryName(categoryId) {
-    const categories = POS.data.getAll('categories');
+    const categories = dataManager.getCategories();
     const category = categories.find(cat => cat.id === categoryId);
     return category ? category.name : categoryId;
 }
 
-// Load categories for dropdown
-function loadCategories() {
-    const categories = POS.data.getAll('categories');
-    const categorySelects = document.querySelectorAll('#product-category, #category-filter');
-    
-    categorySelects.forEach(select => {
-        if (select.id === 'category-filter') {
-            select.innerHTML = '<option value="">সব ক্যাটাগরি</option>';
-        }
-        
-        categories.forEach(category => {
-            if (category.is_active) {
-                const option = document.createElement('option');
-                option.value = category.id;
-                option.textContent = category.name;
-                select.appendChild(option);
-            }
-        });
-    });
+// Load categories into the product form select dropdown
+function loadCategoriesForSelect() {
+    const categorySelect = document.getElementById("product-category");
+    if (!categorySelect) return;
+
+    const categories = dataManager.getCategories();
+    categorySelect.innerHTML = 
+        `<option value="">ক্যাটাগরি নির্বাচন করুন</option>` +
+        categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join("");
 }
 
-// Show add product modal
-function showAddProductModal() {
-    loadCategories();
-    showModal('add-product-modal');
+// Open Add Product Modal
+function openAddProductModal() {
+    currentEditingProduct = null; // Reset for new product
+    const form = document.getElementById("product-form");
+    if (form) form.reset(); // Clear form fields
+    loadCategoriesForSelect(); // Load categories for the dropdown
+    openModal("product-modal");
 }
 
-// Handle add product form submission
-function handleAddProduct(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
+// Save product
+function saveProduct(event) {
+    event.preventDefault(); // Prevent default form submission
+    const form = document.getElementById("product-form");
+    if (!form) return;
+
+    // Get form data
     const productData = {
-        name: formData.get('product-name') || document.getElementById('product-name').value,
-        description: formData.get('product-description') || document.getElementById('product-description').value,
-        sku: formData.get('product-sku') || document.getElementById('product-sku').value,
-        category: formData.get('product-category') || document.getElementById('product-category').value,
-        unit: formData.get('product-unit') || document.getElementById('product-unit').value,
-        purchase_price: parseNumber(formData.get('purchase-price') || document.getElementById('purchase-price').value),
-        selling_price: parseNumber(formData.get('selling-price') || document.getElementById('selling-price').value),
-        tax_rate: parseNumber(formData.get('tax-rate') || document.getElementById('tax-rate').value),
-        stock_quantity: parseNumber(formData.get('stock-quantity') || document.getElementById('stock-quantity').value),
-        min_stock_level: 5, // Default minimum stock level
-        is_active: true
+        name: document.getElementById("product-name").value.trim(),
+        sku: document.getElementById("product-sku").value.trim(),
+        category: document.getElementById("product-category").value,
+        price: parseFloat(document.getElementById("product-price").value) || 0,
+        stock: parseInt(document.getElementById("product-stock").value) || 0,
+        description: document.getElementById("product-description").value.trim()
     };
-    
-    // Validation
-    const errors = validateForm(e.target, {
-        'product-name': [
-            { type: 'required', message: 'পণ্যের নাম আবশ্যক' }
-        ],
-        'product-category': [
-            { type: 'required', message: 'ক্যাটাগরি নির্বাচন আবশ্যক' }
-        ],
-        'selling-price': [
-            { type: 'required', message: 'বিক্রয় মূল্য আবশ্যক' },
-            { type: 'range', min: 0.01, max: 999999, message: 'বিক্রয় মূল্য ০.০১ থেকে ৯৯৯৯৯৯ এর মধ্যে হতে হবে' }
-        ]
-    });
-    
-    if (errors.length > 0) {
-        showToast(errors[0].message, 'error');
+
+    // Validate required fields
+    if (!productData.name) {
+        showNotification("পণ্যের নাম প্রয়োজন", "error");
+        soundManager.playError();
         return;
     }
-    
-    // Check if SKU already exists
-    if (productData.sku) {
-        const existingProduct = POS.getProducts().find(p => p.sku === productData.sku);
-        if (existingProduct) {
-            showToast('এই SKU ইতিমধ্যে ব্যবহৃত হয়েছে', 'error');
-            return;
+
+    if (!productData.sku) {
+        showNotification("SKU প্রয়োজন", "error");
+        soundManager.playError();
+        return;
+    }
+
+    if (!productData.category) {
+        showNotification("ক্যাটাগরি নির্বাচন করুন", "error");
+        soundManager.playError();
+        return;
+    }
+
+    if (productData.price <= 0) {
+        showNotification("সঠিক মূল্য দিন", "error");
+        soundManager.playError();
+        return;
+    }
+
+    if (productData.stock < 0) {
+        showNotification("স্টক ০ বা তার বেশি হতে হবে", "error");
+        soundManager.playError();
+        return;
+    }
+
+    // Check for duplicate SKU
+    const existingProduct = dataManager.getProductBySku(productData.sku);
+    if (existingProduct && (!currentEditingProduct || existingProduct.id !== currentEditingProduct)) {
+        showNotification("এই SKU ইতিমধ্যে ব্যবহৃত হয়েছে", "error");
+        soundManager.playError();
+        return;
+    }
+
+    // Save or update product
+    let success = false;
+    if (currentEditingProduct) {
+        // Update existing product
+        success = dataManager.updateProduct(currentEditingProduct, productData);
+        if (success) {
+            showNotification("পণ্য সফলভাবে আপডেট হয়েছে", "success");
+        }
+    } else {
+        // Add new product
+        success = dataManager.addProduct(productData);
+        if (success) {
+            showNotification("নতুন পণ্য যোগ হয়েছে", "success");
         }
     }
-    
-    showLoading();
-    
-    const product = POS.createProduct(productData);
-    
-    hideLoading();
-    
-    if (product) {
-        showToast('পণ্য সফলভাবে যোগ করা হয়েছে', 'success');
-        closeModal('add-product-modal');
+
+    if (success) {
+        soundManager.playSuccess();
+        closeModal();
         loadProductsTable();
         
-        // If on sales page, reload products
-        if (currentPage === 'sales') {
+        // Reload products in sales page if it's currently active
+        if (currentPage === "sales") {
             loadProducts();
         }
     } else {
-        showToast('পণ্য যোগ করতে সমস্যা হয়েছে', 'error');
+        showNotification("পণ্য সংরক্ষণে ব্যর্থ", "error");
+        soundManager.playError();
     }
 }
 
 // Edit product
 function editProduct(productId) {
-    const product = POS.data.read('products', productId);
+    const product = dataManager.getProductById(productId);
     if (!product) {
-        showToast('পণ্য পাওয়া যায়নি', 'error');
+        showNotification("পণ্য পাওয়া যায়নি", "error");
+        soundManager.playError();
         return;
     }
-    
-    // Populate form with product data
-    document.getElementById('product-name').value = product.name;
-    document.getElementById('product-description').value = product.description || '';
-    document.getElementById('product-sku').value = product.sku || '';
-    document.getElementById('product-category').value = product.category;
-    document.getElementById('product-unit').value = product.unit;
-    document.getElementById('purchase-price').value = product.purchase_price;
-    document.getElementById('selling-price').value = product.selling_price;
-    document.getElementById('tax-rate').value = product.tax_rate;
-    document.getElementById('stock-quantity').value = product.stock_quantity;
-    
-    // Change form to edit mode
-    const form = document.getElementById('add-product-form');
-    const modal = document.getElementById('add-product-modal');
-    const modalTitle = modal.querySelector('.modal-header h3');
-    
-    modalTitle.textContent = 'পণ্য সম্পাদনা করুন';
-    form.dataset.editId = productId;
-    
-    // Update form submission handler
-    form.removeEventListener('submit', handleAddProduct);
-    form.addEventListener('submit', handleEditProduct);
-    
-    loadCategories();
-    showModal('add-product-modal');
-}
 
-// Handle edit product form submission
-function handleEditProduct(e) {
-    e.preventDefault();
-    
-    const productId = e.target.dataset.editId;
-    const formData = new FormData(e.target);
-    
-    const updates = {
-        name: formData.get('product-name') || document.getElementById('product-name').value,
-        description: formData.get('product-description') || document.getElementById('product-description').value,
-        sku: formData.get('product-sku') || document.getElementById('product-sku').value,
-        category: formData.get('product-category') || document.getElementById('product-category').value,
-        unit: formData.get('product-unit') || document.getElementById('product-unit').value,
-        purchase_price: parseNumber(formData.get('purchase-price') || document.getElementById('purchase-price').value),
-        selling_price: parseNumber(formData.get('selling-price') || document.getElementById('selling-price').value),
-        tax_rate: parseNumber(formData.get('tax-rate') || document.getElementById('tax-rate').value),
-        stock_quantity: parseNumber(formData.get('stock-quantity') || document.getElementById('stock-quantity').value)
-    };
-    
-    // Validation
-    const errors = validateForm(e.target, {
-        'product-name': [
-            { type: 'required', message: 'পণ্যের নাম আবশ্যক' }
-        ],
-        'product-category': [
-            { type: 'required', message: 'ক্যাটাগরি নির্বাচন আবশ্যক' }
-        ],
-        'selling-price': [
-            { type: 'required', message: 'বিক্রয় মূল্য আবশ্যক' },
-            { type: 'range', min: 0.01, max: 999999, message: 'বিক্রয় মূল্য ০.০১ থেকে ৯৯৯৯৯৯ এর মধ্যে হতে হবে' }
-        ]
-    });
-    
-    if (errors.length > 0) {
-        showToast(errors[0].message, 'error');
-        return;
-    }
-    
-    // Check if SKU already exists (excluding current product)
-    if (updates.sku) {
-        const existingProduct = POS.getProducts().find(p => p.sku === updates.sku && p.id !== productId);
-        if (existingProduct) {
-            showToast('এই SKU ইতিমধ্যে ব্যবহৃত হয়েছে', 'error');
-            return;
-        }
-    }
-    
-    showLoading();
-    
-    const updatedProduct = POS.data.update('products', productId, updates);
-    
-    hideLoading();
-    
-    if (updatedProduct) {
-        showToast('পণ্য সফলভাবে আপডেট করা হয়েছে', 'success');
-        closeModal('add-product-modal');
-        loadProductsTable();
-        
-        // Reset form
-        resetProductForm();
-        
-        // If on sales page, reload products
-        if (currentPage === 'sales') {
-            loadProducts();
-        }
-    } else {
-        showToast('পণ্য আপডেট করতে সমস্যা হয়েছে', 'error');
-    }
-}
+    // Set current editing product
+    currentEditingProduct = productId;
 
-// View product details
-function viewProduct(productId) {
-    const product = POS.data.read('products', productId);
-    if (!product) {
-        showToast('পণ্য পাওয়া যায়নি', 'error');
-        return;
-    }
-    
-    // Create a simple view modal (you can enhance this)
-    const viewContent = `
-        <div style="padding: 1rem;">
-            <h3>${product.name}</h3>
-            <p><strong>বর্ণনা:</strong> ${product.description || 'নেই'}</p>
-            <p><strong>SKU:</strong> ${product.sku || 'নেই'}</p>
-            <p><strong>ক্যাটাগরি:</strong> ${getCategoryName(product.category)}</p>
-            <p><strong>ইউনিট:</strong> ${product.unit}</p>
-            <p><strong>ক্রয় মূল্য:</strong> ${formatCurrency(product.purchase_price)}</p>
-            <p><strong>বিক্রয় মূল্য:</strong> ${formatCurrency(product.selling_price)}</p>
-            <p><strong>ট্যাক্স রেট:</strong> ${product.tax_rate}%</p>
-            <p><strong>স্টক:</strong> ${product.stock_quantity} ${product.unit}</p>
-            <p><strong>সর্বনিম্ন স্টক:</strong> ${product.min_stock_level || 0} ${product.unit}</p>
-            <p><strong>স্ট্যাটাস:</strong> ${product.is_active ? 'সক্রিয়' : 'নিষ্ক্রিয়'}</p>
-            <p><strong>তৈরি:</strong> ${formatDate(product.created_date)}</p>
-            <p><strong>আপডেট:</strong> ${formatDate(product.updated_date)}</p>
-        </div>
-    `;
-    
-    // Show in a simple alert for now (you can create a proper modal)
-    alert(viewContent.replace(/<[^>]*>/g, '\n').replace(/\n+/g, '\n'));
+    // Fill form with product data
+    document.getElementById("product-name").value = product.name;
+    document.getElementById("product-sku").value = product.sku;
+    document.getElementById("product-category").value = product.category;
+    document.getElementById("product-price").value = product.price;
+    document.getElementById("product-stock").value = product.stock;
+    document.getElementById("product-description").value = product.description || "";
+
+    // Open modal
+    openModal("product-modal");
 }
 
 // Delete product
 function deleteProduct(productId) {
-    const product = POS.data.read('products', productId);
+    const product = dataManager.getProductById(productId);
     if (!product) {
-        showToast('পণ্য পাওয়া যায়নি', 'error');
+        showNotification("পণ্য পাওয়া যায়নি", "error");
+        soundManager.playError();
         return;
     }
-    
-    if (confirm(`আপনি কি "${product.name}" পণ্যটি মুছে ফেলতে চান?`)) {
-        showLoading();
-        
-        const deleted = POS.data.delete('products', productId);
-        
-        hideLoading();
-        
-        if (deleted) {
-            showToast('পণ্য সফলভাবে মুছে ফেলা হয়েছে', 'success');
+
+    // Check if product is in any sales
+    const sales = dataManager.getSales();
+    const productInSales = sales.some(sale => 
+        sale.items.some(item => item.productId === productId)
+    );
+
+    let confirmMessage = `আপনি কি "${product.name}" পণ্যটি মুছে ফেলতে চান?`;
+    if (productInSales) {
+        confirmMessage += "\n\nসতর্কতা: এই পণ্যটি পূর্বের বিক্রয়ে ব্যবহৃত হয়েছে।";
+    }
+
+    if (confirm(confirmMessage)) {
+        if (dataManager.deleteProduct(productId)) {
+            showNotification("পণ্য মুছে ফেলা হয়েছে", "success");
+            soundManager.playSuccess();
             loadProductsTable();
             
-            // If on sales page, reload products
-            if (currentPage === 'sales') {
+            // Reload products in sales page if it's currently active
+            if (currentPage === "sales") {
                 loadProducts();
             }
         } else {
-            showToast('পণ্য মুছতে সমস্যা হয়েছে', 'error');
+            showNotification("পণ্য মুছতে ব্যর্থ", "error");
+            soundManager.playError();
         }
     }
 }
 
-// Reset product form
-function resetProductForm() {
-    const form = document.getElementById('add-product-form');
-    const modal = document.getElementById('add-product-modal');
-    const modalTitle = modal.querySelector('.modal-header h3');
+// Generate SKU
+function generateSKU() {
+    const name = document.getElementById("product-name").value.trim();
+    const category = document.getElementById("product-category").value;
     
-    modalTitle.textContent = 'নতুন পণ্য যোগ করুন';
-    delete form.dataset.editId;
+    if (!name || !category) {
+        showNotification("প্রথমে পণ্যের নাম এবং ক্যাটাগরি দিন", "error");
+        return;
+    }
+
+    // Generate SKU based on category and name
+    const categoryCode = category.substring(0, 3).toUpperCase();
+    const nameCode = name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, "");
+    const randomCode = Math.random().toString(36).substring(2, 5).toUpperCase();
     
-    // Reset form submission handler
-    form.removeEventListener('submit', handleEditProduct);
-    form.addEventListener('submit', handleAddProduct);
+    const sku = `${categoryCode}-${nameCode}-${randomCode}`;
+    document.getElementById("product-sku").value = sku;
     
-    form.reset();
+    soundManager.playClick();
 }
 
-// Setup product filters
-function setupProductFilters() {
-    const productFilter = document.getElementById('product-filter');
-    const categoryFilter = document.getElementById('category-filter');
+// Import products from CSV
+function importProducts() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
     
-    if (productFilter) {
-        const debouncedFilter = debounce(function() {
-            filterProductsTable();
-        }, 300);
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const csv = e.target.result;
+            parseAndImportProducts(csv);
+        };
+        reader.readAsText(file);
+    };
+    
+    input.click();
+}
+
+// Parse and import products from CSV
+function parseAndImportProducts(csv) {
+    try {
+        const lines = csv.split("\n");
+        const headers = lines[0].split(",").map(h => h.trim());
         
-        productFilter.addEventListener('input', debouncedFilter);
-    }
-    
-    if (categoryFilter) {
-        categoryFilter.addEventListener('change', filterProductsTable);
+        // Expected headers: name, sku, category, price, stock, description
+        const requiredHeaders = ["name", "sku", "category", "price", "stock"];
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        
+        if (missingHeaders.length > 0) {
+            showNotification(`অনুপস্থিত কলাম: ${missingHeaders.join(", ")}`, "error");
+            return;
+        }
+
+        const products = [];
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const values = line.split(",").map(v => v.trim());
+            const product = {};
+
+            headers.forEach((header, index) => {
+                product[header] = values[index] || "";
+            });
+
+            // Validate and convert data types
+            if (!product.name || !product.sku || !product.category) {
+                errorCount++;
+                continue;
+            }
+
+            product.price = parseFloat(product.price) || 0;
+            product.stock = parseInt(product.stock) || 0;
+
+            if (product.price <= 0) {
+                errorCount++;
+                continue;
+            }
+
+            // Check for duplicate SKU
+            if (dataManager.getProductBySku(product.sku)) {
+                errorCount++;
+                continue;
+            }
+
+            if (dataManager.addProduct(product)) {
+                successCount++;
+            } else {
+                errorCount++;
+            }
+        }
+
+        showNotification(`${successCount}টি পণ্য যোগ হয়েছে, ${errorCount}টি ত্রুটি`, "success");
+        loadProductsTable();
+        
+    } catch (error) {
+        console.error("Error importing products:", error);
+        showNotification("পণ্য ইমপোর্ট করতে ব্যর্থ", "error");
     }
 }
 
-// Filter products table
-function filterProductsTable() {
-    const searchTerm = document.getElementById('product-filter')?.value || '';
-    const categoryFilter = document.getElementById('category-filter')?.value || '';
+// Export products to CSV
+function exportProducts() {
+    const products = dataManager.getProducts();
     
-    const filters = {};
-    if (searchTerm) filters.search = searchTerm;
-    if (categoryFilter) filters.category = categoryFilter;
+    if (products.length === 0) {
+        showNotification("কোনো পণ্য নেই", "error");
+        return;
+    }
+
+    // Create CSV content
+    const headers = ["name", "sku", "category", "price", "stock", "description"];
+    const csvContent = [
+        headers.join(","),
+        ...products.map(product => 
+            headers.map(header => `"${product[header] || ""}"`).join(",")
+        )
+    ].join("\n");
+
+    // Download file
+    const filename = `products_${formatDate(new Date()).replace(/\//g, "-")}.csv`;
+    downloadFile(csvContent, filename, "text/csv");
     
-    const products = POS.getProducts(filters);
-    const tableBody = document.querySelector('#products-table tbody');
+    showNotification("পণ্য তালিকা এক্সপোর্ট হয়েছে", "success");
+}
+
+// Bulk update stock
+function bulkUpdateStock() {
+    const products = dataManager.getProducts();
     
+    if (products.length === 0) {
+        showNotification("কোনো পণ্য নেই", "error");
+        return;
+    }
+
+    const stockUpdate = prompt("সব পণ্যের স্টক কত করতে চান? (বর্তমান স্টকের সাথে যোগ হবে)");
+    
+    if (stockUpdate === null) return;
+    
+    const updateAmount = parseInt(stockUpdate);
+    
+    if (isNaN(updateAmount)) {
+        showNotification("সঠিক সংখ্যা দিন", "error");
+        return;
+    }
+
+    let updatedCount = 0;
+    
+    products.forEach(product => {
+        const newStock = Math.max(0, product.stock + updateAmount);
+        if (dataManager.updateProduct(product.id, { stock: newStock })) {
+            updatedCount++;
+        }
+    });
+
+    showNotification(`${updatedCount}টি পণ্যের স্টক আপডেট হয়েছে`, "success");
+    loadProductsTable();
+}
+
+// Search products in table
+function searchProductsTable() {
+    const searchTerm = document.getElementById("product-search-table").value.toLowerCase();
+    const tableRows = document.querySelectorAll("#products-table-body tr");
+    
+    tableRows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? "" : "none";
+    });
+}
+
+// Filter products by category in table
+function filterProductsTableByCategory() {
+    const category = document.getElementById("product-category-filter").value;
+    const products = category === "all" ? 
+        dataManager.getProducts() : 
+        dataManager.getProductsByCategory(category);
+    
+    const tableBody = document.getElementById("products-table-body");
     if (!tableBody) return;
-    
-    tableBody.innerHTML = '';
-    
+
     if (products.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="7" class="text-center">কোনো পণ্য পাওয়া যায়নি</td>
+                <td colspan="7" class="text-center">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <h3>এই ক্যাটাগরিতে কোনো পণ্য নেই</h3>
+                    </div>
+                </td>
             </tr>
         `;
         return;
     }
-    
-    products.forEach(product => {
-        const row = createProductTableRow(product);
-        tableBody.appendChild(row);
-    });
+
+    tableBody.innerHTML = products.map(product => `
+        <tr>
+            <td>${product.name}</td>
+            <td>${product.sku}</td>
+            <td>${getCategoryName(product.category)}</td>
+            <td>${formatCurrency(product.price)}</td>
+            <td>${product.stock}</td>
+            <td>
+                <span class="status-badge ${product.stock > 0 ? "status-active" : "status-inactive"}">
+                    ${product.stock > 0 ? "সক্রিয়" : "নিষ্ক্রিয়"}
+                </span>
+                ${product.stock <= 10 && product.stock > 0 ? 
+                    "<span class="status-badge status-low-stock">কম স্টক</span>" : ""}
+            </td>
+            <td>
+                <button class="action-btn" onclick="editProduct(\'${product.id}\')">সম্পাদনা</button>
+                <button class="action-btn delete" onclick="deleteProduct(\'${product.id}\')">মুছুন</button>
+            </td>
+        </tr>
+    `).join("");
 }
 
-// Initialize product management when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    setupProductFilters();
-    
-    // Reset form when modal is closed
-    const addProductModal = document.getElementById('add-product-modal');
-    if (addProductModal) {
-        addProductModal.addEventListener('hidden', resetProductForm);
-    }
-});
+console.log("Products module loaded");
 
-// Global functions for HTML onclick events
-window.showAddProductModal = showAddProductModal;
-window.editProduct = editProduct;
-window.viewProduct = viewProduct;
-window.deleteProduct = deleteProduct;
-window.handleAddProduct = handleAddProduct;
+
 
