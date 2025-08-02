@@ -1,2 +1,47 @@
-[]
+[
+    {
+        "id": "prod001",
+        "name": "চা",
+        "sku": "TEA-BLK-001",
+        "category": "restaurant",
+        "price": 10.00,
+        "stock": 100,
+        "description": "কালো চা",
+        "createdAt": "2025-08-01T10:00:00.000Z",
+        "updatedAt": "2025-08-01T10:00:00.000Z"
+    },
+    {
+        "id": "prod002",
+        "name": "কফি",
+        "sku": "COF-LAT-002",
+        "category": "restaurant",
+        "price": 15.00,
+        "stock": 80,
+        "description": "ল্যাটে কফি",
+        "createdAt": "2025-08-01T10:05:00.000Z",
+        "updatedAt": "2025-08-01T10:05:00.000Z"
+    },
+    {
+        "id": "prod003",
+        "name": "চিপস",
+        "sku": "GRO-CHI-003",
+        "category": "grocery",
+        "price": 20.00,
+        "stock": 150,
+        "description": "আলু চিপস",
+        "createdAt": "2025-08-01T10:10:00.000Z",
+        "updatedAt": "2025-08-01T10:10:00.000Z"
+    },
+    {
+        "id": "prod004",
+        "name": "শার্ট",
+        "sku": "CLO-SHI-004",
+        "category": "clothing",
+        "price": 500.00,
+        "stock": 50,
+        "description": "পুরুষদের শার্ট",
+        "createdAt": "2025-08-01T10:15:00.000Z",
+        "updatedAt": "2025-08-01T10:15:00.000Z"
+    }
+]
 
