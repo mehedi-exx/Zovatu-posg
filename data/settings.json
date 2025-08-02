@@ -1,0 +1,37 @@
+{
+  "company": {
+    "name": "আমার ব্যবসা প্রতিষ্ঠান",
+    "address": "ঢাকা, বাংলাদেশ",
+    "phone": "01700000000",
+    "email": "info@mybusiness.com",
+    "tax_number": "",
+    "logo_url": ""
+  },
+  "pos": {
+    "default_tax_rate": 15,
+    "currency": "৳",
+    "decimal_places": 2,
+    "auto_print_receipt": false,
+    "low_stock_alert": true,
+    "barcode_scanner": false,
+    "customer_display": false
+  },
+  "print": {
+    "receipt_width": "80mm",
+    "header_text": "ধন্যবাদ আমাদের সাথে কেনাকাটার জন্য",
+    "footer_text": "আবার আসবেন",
+    "show_logo": false,
+    "show_barcode": false
+  },
+  "backup": {
+    "auto_backup": false,
+    "backup_interval": "daily",
+    "backup_location": "local"
+  },
+  "security": {
+    "session_timeout": 30,
+    "require_login": false,
+    "password_policy": "simple"
+  }
+}
+

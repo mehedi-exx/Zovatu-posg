@@ -1,0 +1,42 @@
+[
+  {
+    "id": "admin",
+    "username": "admin",
+    "password": "admin123",
+    "full_name": "সিস্টেম অ্যাডমিন",
+    "email": "admin@pos.com",
+    "phone": "01700000000",
+    "role": "admin",
+    "permissions": [
+      "sales",
+      "products",
+      "inventory",
+      "customers",
+      "reports",
+      "settings",
+      "users"
+    ],
+    "is_active": true,
+    "last_login": null,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "cashier",
+    "username": "cashier",
+    "password": "cashier123",
+    "full_name": "ক্যাশিয়ার",
+    "email": "cashier@pos.com",
+    "phone": "01700000001",
+    "role": "cashier",
+    "permissions": [
+      "sales",
+      "customers"
+    ],
+    "is_active": true,
+    "last_login": null,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  }
+]
+

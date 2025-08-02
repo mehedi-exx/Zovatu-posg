@@ -1,0 +1,75 @@
+[
+  {
+    "id": "restaurant",
+    "name": "রেস্টুরেন্ট",
+    "description": "খাবার ও পানীয়",
+    "parent_id": null,
+    "is_active": true,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "grocery",
+    "name": "মুদি দোকান",
+    "description": "দৈনন্দিন প্রয়োজনীয় পণ্য",
+    "parent_id": null,
+    "is_active": true,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "clothing",
+    "name": "পোশাক",
+    "description": "কাপড় ও ফ্যাশন আইটেম",
+    "parent_id": null,
+    "is_active": true,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "electronics",
+    "name": "ইলেকট্রনিক্স",
+    "description": "ইলেকট্রনিক পণ্য",
+    "parent_id": null,
+    "is_active": true,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "pharmacy",
+    "name": "ফার্মেসি",
+    "description": "ওষুধ ও স্বাস্থ্য পণ্য",
+    "parent_id": null,
+    "is_active": true,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "cosmetics",
+    "name": "কসমেটিক্স",
+    "description": "সৌন্দর্য ও পরিচর্যা পণ্য",
+    "parent_id": null,
+    "is_active": true,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "stationery",
+    "name": "স্টেশনারি",
+    "description": "অফিস ও শিক্ষা উপকরণ",
+    "parent_id": null,
+    "is_active": true,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "others",
+    "name": "অন্যান্য",
+    "description": "অন্যান্য পণ্য",
+    "parent_id": null,
+    "is_active": true,
+    "created_date": "2024-01-01T00:00:00.000Z",
+    "updated_date": "2024-01-01T00:00:00.000Z"
+  }
+]
+
