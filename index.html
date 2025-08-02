@@ -6,179 +6,90 @@
     <title>POS সিস্টেম - Point of Sale</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/responsive.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Header Section -->
+    <!-- Header -->
     <header class="header">
-        <div class="header-left">
+        <div class="header-content">
             <div class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-cash-register"></i>
-                </div>
-                <span class="logo-text">POS সিস্টেম</span>
+                <h1>POS সিস্টেম</h1>
+                <span>Point of Sale</span>
             </div>
-        </div>
-        <div class="header-center">
-            <div class="search-bar">
-                <i class="fas fa-search"></i>
-                <input type="text" placeholder="পণ্য খুঁজুন..." id="global-search">
-            </div>
-        </div>
-        <div class="header-right">
             <div class="header-actions">
-                <button class="header-btn" title="নোটিফিকেশন">
-                    <i class="fas fa-bell"></i>
-                    <span class="badge">3</span>
-                </button>
-                <button class="header-btn" title="সেটিংস">
-                    <i class="fas fa-cog"></i>
-                </button>
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        <i class="fas fa-user"></i>
-                    </div>
-                    <div class="user-info">
-                        <span class="user-name">অ্যাডমিন</span>
-                        <span class="user-role">ম্যানেজার</span>
-                    </div>
+                <div class="user-info">
+                    <span id="current-user">অ্যাডমিন</span>
                 </div>
+                <button class="logout-btn" onclick="logout()">লগআউট</button>
             </div>
         </div>
     </header>
 
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
-        <nav class="nav-menu">
-            <ul class="nav-list">
-                <li class="nav-item">
-                    <a href="#" class="nav-link active" data-page="sales">
-                        <div class="nav-icon">
-                            <i class="fas fa-shopping-cart"></i>
-                        </div>
-                        <span class="nav-text">বিক্রয়</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="products">
-                        <div class="nav-icon">
-                            <i class="fas fa-box"></i>
-                        </div>
-                        <span class="nav-text">পণ্য ব্যবস্থাপনা</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="inventory">
-                        <div class="nav-icon">
-                            <i class="fas fa-warehouse"></i>
-                        </div>
-                        <span class="nav-text">ইনভেন্টরি</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="customers">
-                        <div class="nav-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <span class="nav-text">গ্রাহক</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="reports">
-                        <div class="nav-icon">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <span class="nav-text">রিপোর্ট</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-page="settings">
-                        <div class="nav-icon">
-                            <i class="fas fa-cog"></i>
-                        </div>
-                        <span class="nav-text">সেটিংস</span>
-                    </a>
-                </li>
-            </ul>
-        </nav>
-    </aside>
+    <!-- Navigation -->
+    <nav class="sidebar">
+        <ul class="nav-menu">
+            <li><a href="#" onclick="showPage('sales')" class="nav-link active" data-page="sales">
+                <span class="nav-icon">🛒</span>
+                <span class="nav-text">বিক্রয়</span>
+            </a></li>
+            <li><a href="#" onclick="showPage('products')" class="nav-link" data-page="products">
+                <span class="nav-icon">📦</span>
+                <span class="nav-text">পণ্য ব্যবস্থাপনা</span>
+            </a></li>
+            <li><a href="#" onclick="showPage('inventory')" class="nav-link" data-page="inventory">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">ইনভেন্টরি</span>
+            </a></li>
+            <li><a href="#" onclick="showPage('customers')" class="nav-link" data-page="customers">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">গ্রাহক</span>
+            </a></li>
+            <li><a href="#" onclick="showPage('reports')" class="nav-link" data-page="reports">
+                <span class="nav-icon">📈</span>
+                <span class="nav-text">রিপোর্ট</span>
+            </a></li>
+            <li><a href="#" onclick="showPage('settings')" class="nav-link" data-page="settings">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">সেটিংস</span>
+            </a></li>
+        </ul>
+    </nav>
 
-    <!-- Main Content Area -->
+    <!-- Main Content -->
     <main class="main-content">
         <!-- Sales Page -->
         <div id="sales-page" class="page active">
             <div class="page-header">
-                <h1 class="page-title">বিক্রয় কেন্দ্র</h1>
-                <div class="page-actions">
-                    <button class="btn btn-secondary">
-                        <i class="fas fa-history"></i>
-                        বিক্রয় ইতিহাস
-                    </button>
+                <h2>বিক্রয় কেন্দ্র</h2>
+                <div class="search-bar">
+                    <input type="text" id="product-search" placeholder="পণ্য খুঁজুন..." onkeyup="searchProducts()">
                 </div>
             </div>
 
             <div class="sales-container">
-                <!-- Products Section -->
                 <div class="products-section">
-                    <div class="section-header">
-                        <h2 class="section-title">পণ্য নির্বাচন</h2>
-                        <div class="section-actions">
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" placeholder="পণ্য খুঁজুন..." id="product-search">
-                            </div>
-                        </div>
+                    <div class="category-filters">
+                        <button class="category-btn active" onclick="filterByCategory('all')">সব</button>
+                        <button class="category-btn" onclick="filterByCategory('restaurant')">রেস্টুরেন্ট</button>
+                        <button class="category-btn" onclick="filterByCategory('grocery')">গ্রোসারি</button>
+                        <button class="category-btn" onclick="filterByCategory('clothing')">পোশাক</button>
+                        <button class="category-btn" onclick="filterByCategory('electronics')">ইলেকট্রনিক্স</button>
                     </div>
-
-                    <div class="filter-tabs">
-                        <button class="filter-tab active" data-category="all">
-                            <i class="fas fa-th-large"></i>
-                            সব পণ্য
-                        </button>
-                        <button class="filter-tab" data-category="restaurant">
-                            <i class="fas fa-utensils"></i>
-                            রেস্টুরেন্ট
-                        </button>
-                        <button class="filter-tab" data-category="grocery">
-                            <i class="fas fa-shopping-basket"></i>
-                            গ্রোসারি
-                        </button>
-                        <button class="filter-tab" data-category="clothing">
-                            <i class="fas fa-tshirt"></i>
-                            পোশাক
-                        </button>
-                        <button class="filter-tab" data-category="electronics">
-                            <i class="fas fa-laptop"></i>
-                            ইলেকট্রনিক্স
-                        </button>
-                    </div>
-
+                    
                     <div class="products-grid" id="products-grid">
                         <!-- Products will be loaded here -->
                     </div>
                 </div>
 
-                <!-- Cart Section -->
                 <div class="cart-section">
                     <div class="cart-header">
-                        <h3 class="cart-title">
-                            <i class="fas fa-shopping-cart"></i>
-                            বর্তমান অর্ডার
-                        </h3>
-                        <button class="cart-clear" id="clear-cart">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <h3>বর্তমান অর্ডার</h3>
+                        <button class="clear-cart-btn" onclick="clearCart()">সব মুছুন</button>
                     </div>
-
+                    
                     <div class="cart-items" id="cart-items">
-                        <div class="empty-cart">
-                            <i class="fas fa-shopping-cart"></i>
-                            <p>কার্ট খালি</p>
-                            <span>পণ্য যোগ করুন</span>
-                        </div>
+                        <!-- Cart items will be displayed here -->
                     </div>
-
+                    
                     <div class="cart-summary">
                         <div class="summary-row">
                             <span>সাবটোটাল:</span>
@@ -186,276 +97,159 @@
                         </div>
                         <div class="summary-row">
                             <span>ট্যাক্স:</span>
-                            <span id="tax">৳০.০০</span>
+                            <span id="tax-amount">৳০.০০</span>
                         </div>
                         <div class="summary-row">
                             <span>ডিসকাউন্ট:</span>
-                            <span id="discount">৳০.০০</span>
+                            <span id="discount-amount">৳০.০০</span>
                         </div>
                         <div class="summary-row total">
                             <span>মোট:</span>
-                            <span id="total">৳০.০০</span>
+                            <span id="total-amount">৳০.০০</span>
                         </div>
                     </div>
-
-                    <div class="customer-section">
-                        <label class="form-label">গ্রাহক:</label>
-                        <select class="form-select" id="customer-select">
-                            <option value="">গ্রাহক নির্বাচন করুন</option>
-                            <option value="walk-in">সাধারণ গ্রাহক</option>
-                        </select>
-                    </div>
-
-                    <div class="discount-section">
-                        <label class="form-label">ডিসকাউন্ট:</label>
-                        <div class="discount-input-group">
-                            <input type="number" class="form-input" placeholder="০" id="discount-amount">
-                            <select class="form-select discount-type" id="discount-type">
-                                <option value="amount">৳</option>
-                                <option value="percentage">%</option>
+                    
+                    <div class="payment-section">
+                        <div class="customer-select">
+                            <label>গ্রাহক:</label>
+                            <select id="customer-select">
+                                <option value="">গ্রাহক নির্বাচন করুন</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="payment-section">
-                        <label class="form-label">পেমেন্ট পদ্ধতি:</label>
+                        
                         <div class="payment-methods">
-                            <button class="payment-btn active" data-method="cash">
-                                <i class="fas fa-money-bill"></i>
-                                নগদ
-                            </button>
-                            <button class="payment-btn" data-method="card">
-                                <i class="fas fa-credit-card"></i>
-                                কার্ড
-                            </button>
-                            <button class="payment-btn" data-method="mobile">
-                                <i class="fas fa-mobile-alt"></i>
-                                মোবাইল
-                            </button>
+                            <label>পেমেন্ট পদ্ধতি:</label>
+                            <div class="payment-options">
+                                <button class="payment-btn active" data-method="cash" onclick="selectPaymentMethod('cash')">নগদ</button>
+                                <button class="payment-btn" data-method="card" onclick="selectPaymentMethod('card')">কার্ড</button>
+                                <button class="payment-btn" data-method="mobile" onclick="selectPaymentMethod('mobile')">মোবাইল</button>
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="amount-section">
-                        <label class="form-label">প্রদত্ত পরিমাণ:</label>
-                        <input type="number" class="form-input amount-input" placeholder="০.০০" id="paid-amount">
-                        <div class="change-display" id="change-display">
-                            <span>ফেরত: ৳০.০০</span>
+                        
+                        <div class="payment-input">
+                            <label>প্রদত্ত পরিমাণ:</label>
+                            <input type="number" id="paid-amount" placeholder="০.০০" onkeyup="calculateChange()">
                         </div>
-                    </div>
-
-                    <div class="cart-actions">
-                        <button class="btn btn-secondary btn-block" id="hold-order">
-                            <i class="fas fa-pause"></i>
-                            হোল্ড
-                        </button>
-                        <button class="btn btn-primary btn-block" id="complete-sale">
-                            <i class="fas fa-check"></i>
-                            সম্পন্ন
-                        </button>
+                        
+                        <div class="change-amount">
+                            <span>ফেরত: <strong id="change-amount">৳০.০০</strong></span>
+                        </div>
+                        
+                        <button class="checkout-btn" onclick="completeSale()">সম্পন্ন করুন</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Products Management Page -->
+        <!-- Products Page -->
         <div id="products-page" class="page">
             <div class="page-header">
-                <h1 class="page-title">পণ্য ব্যবস্থাপনা</h1>
-                <div class="page-actions">
-                    <button class="btn btn-primary" id="add-product-btn">
-                        <i class="fas fa-plus"></i>
-                        নতুন পণ্য
-                    </button>
-                </div>
+                <h2>পণ্য ব্যবস্থাপনা</h2>
+                <button class="add-btn" onclick="openModal('product-modal')">নতুন পণ্য</button>
             </div>
-
-            <div class="content-card">
-                <div class="card-header">
-                    <h3>পণ্য তালিকা</h3>
-                    <div class="card-actions">
-                        <div class="search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" placeholder="পণ্য খুঁজুন..." id="products-search">
-                        </div>
-                    </div>
-                </div>
-                <div class="table-container">
-                    <table class="table" id="products-table">
-                        <thead>
-                            <tr>
-                                <th>পণ্যের নাম</th>
-                                <th>SKU</th>
-                                <th>ক্যাটাগরি</th>
-                                <th>মূল্য</th>
-                                <th>স্টক</th>
-                                <th>স্ট্যাটাস</th>
-                                <th>অ্যাকশন</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Products will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
+            
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>পণ্যের নাম</th>
+                            <th>SKU</th>
+                            <th>ক্যাটাগরি</th>
+                            <th>মূল্য</th>
+                            <th>স্টক</th>
+                            <th>স্ট্যাটাস</th>
+                            <th>অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-table-body">
+                        <!-- Products will be loaded here -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
         <!-- Inventory Page -->
         <div id="inventory-page" class="page">
             <div class="page-header">
-                <h1 class="page-title">ইনভেন্টরি ব্যবস্থাপনা</h1>
-                <div class="page-actions">
-                    <button class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        স্টক যোগ করুন
-                    </button>
-                </div>
+                <h2>ইনভেন্টরি ব্যবস্থাপনা</h2>
+                <button class="add-btn" onclick="openModal('stock-modal')">স্টক আপডেট</button>
             </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-boxes"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="total-products">০</h3>
-                        <p>মোট পণ্য</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="low-stock-products">০</h3>
-                        <p>কম স্টক</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon danger">
-                        <i class="fas fa-times-circle"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="out-of-stock-products">০</h3>
-                        <p>স্টক শেষ</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="content-card">
-                <div class="card-header">
-                    <h3>ইনভেন্টরি তালিকা</h3>
-                </div>
-                <div class="table-container">
-                    <table class="table" id="inventory-table">
-                        <thead>
-                            <tr>
-                                <th>পণ্যের নাম</th>
-                                <th>বর্তমান স্টক</th>
-                                <th>মিনিমাম স্টক</th>
-                                <th>সর্বশেষ আপডেট</th>
-                                <th>স্ট্যাটাস</th>
-                                <th>অ্যাকশন</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Inventory will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
+            
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>পণ্যের নাম</th>
+                            <th>বর্তমান স্টক</th>
+                            <th>মিনিমাম স্টক</th>
+                            <th>সর্বশেষ আপডেট</th>
+                            <th>স্ট্যাটাস</th>
+                            <th>অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-table-body">
+                        <!-- Inventory will be loaded here -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
         <!-- Customers Page -->
         <div id="customers-page" class="page">
             <div class="page-header">
-                <h1 class="page-title">গ্রাহক ব্যবস্থাপনা</h1>
-                <div class="page-actions">
-                    <button class="btn btn-primary" id="add-customer-btn">
-                        <i class="fas fa-plus"></i>
-                        নতুন গ্রাহক
-                    </button>
-                </div>
+                <h2>গ্রাহক ব্যবস্থাপনা</h2>
+                <button class="add-btn" onclick="openModal('customer-modal')">নতুন গ্রাহক</button>
             </div>
-
-            <div class="content-card">
-                <div class="card-header">
-                    <h3>গ্রাহক তালিকা</h3>
-                    <div class="card-actions">
-                        <div class="search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" placeholder="গ্রাহক খুঁজুন..." id="customers-search">
-                        </div>
-                    </div>
-                </div>
-                <div class="table-container">
-                    <table class="table" id="customers-table">
-                        <thead>
-                            <tr>
-                                <th>নাম</th>
-                                <th>ফোন</th>
-                                <th>ইমেইল</th>
-                                <th>মোট ক্রয়</th>
-                                <th>সর্বশেষ ক্রয়</th>
-                                <th>অ্যাকশন</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Customers will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
+            
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>নাম</th>
+                            <th>ফোন</th>
+                            <th>ইমেইল</th>
+                            <th>মোট ক্রয়</th>
+                            <th>সর্বশেষ ক্রয়</th>
+                            <th>অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customers-table-body">
+                        <!-- Customers will be loaded here -->
+                    </tbody>
+                </table>
             </div>
         </div>
 
         <!-- Reports Page -->
         <div id="reports-page" class="page">
             <div class="page-header">
-                <h1 class="page-title">রিপোর্ট ও বিশ্লেষণ</h1>
-                <div class="page-actions">
-                    <button class="btn btn-primary">
-                        <i class="fas fa-download"></i>
-                        রিপোর্ট ডাউনলোড
-                    </button>
-                </div>
+                <h2>রিপোর্ট ও বিশ্লেষণ</h2>
+                <button class="add-btn" onclick="generateReport()">রিপোর্ট তৈরি করুন</button>
             </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-dollar-sign"></i>
+            
+            <div class="reports-container">
+                <div class="report-cards">
+                    <div class="report-card">
+                        <h3>আজকের বিক্রয়</h3>
+                        <div class="report-value" id="today-sales">৳০.০০</div>
                     </div>
-                    <div class="stat-content">
-                        <h3 id="today-sales">৳০</h3>
-                        <p>আজকের বিক্রয়</p>
+                    <div class="report-card">
+                        <h3>এই মাসের বিক্রয়</h3>
+                        <div class="report-value" id="month-sales">৳০.০০</div>
                     </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-shopping-cart"></i>
+                    <div class="report-card">
+                        <h3>মোট পণ্য</h3>
+                        <div class="report-value" id="total-products">০</div>
                     </div>
-                    <div class="stat-content">
-                        <h3 id="today-orders">০</h3>
-                        <p>আজকের অর্ডার</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="monthly-sales">৳০</h3>
-                        <p>মাসিক বিক্রয়</p>
+                    <div class="report-card">
+                        <h3>মোট গ্রাহক</h3>
+                        <div class="report-value" id="total-customers">০</div>
                     </div>
                 </div>
-            </div>
-
-            <div class="content-card">
-                <div class="card-header">
+                
+                <div class="sales-history">
                     <h3>বিক্রয় ইতিহাস</h3>
-                </div>
-                <div class="table-container">
-                    <table class="table" id="sales-table">
+                    <table class="data-table">
                         <thead>
                             <tr>
                                 <th>অর্ডার ID</th>
@@ -467,7 +261,7 @@
                                 <th>অ্যাকশন</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="sales-history-body">
                             <!-- Sales history will be loaded here -->
                         </tbody>
                     </table>
@@ -478,107 +272,84 @@
         <!-- Settings Page -->
         <div id="settings-page" class="page">
             <div class="page-header">
-                <h1 class="page-title">সেটিংস</h1>
+                <h2>সেটিংস</h2>
             </div>
-
-            <div class="settings-grid">
-                <div class="content-card">
-                    <div class="card-header">
-                        <h3>কোম্পানি তথ্য</h3>
-                    </div>
-                    <div class="card-body">
-                        <form id="company-form">
-                            <div class="form-group">
-                                <label class="form-label">কোম্পানির নাম</label>
-                                <input type="text" class="form-input" id="company-name" placeholder="আপনার কোম্পানির নাম">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">ঠিকানা</label>
-                                <textarea class="form-textarea" id="company-address" placeholder="কোম্পানির ঠিকানা"></textarea>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">ফোন</label>
-                                <input type="tel" class="form-input" id="company-phone" placeholder="ফোন নম্বর">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">ইমেইল</label>
-                                <input type="email" class="form-input" id="company-email" placeholder="ইমেইল ঠিকানা">
-                            </div>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i>
-                                সংরক্ষণ করুন
-                            </button>
-                        </form>
-                    </div>
+            
+            <div class="settings-container">
+                <div class="settings-section">
+                    <h3>কোম্পানি তথ্য</h3>
+                    <form id="company-form">
+                        <div class="form-group">
+                            <label>কোম্পানির নাম</label>
+                            <input type="text" id="company-name" placeholder="আপনার কোম্পানির নাম">
+                        </div>
+                        <div class="form-group">
+                            <label>ঠিকানা</label>
+                            <input type="text" id="company-address" placeholder="কোম্পানির ঠিকানা">
+                        </div>
+                        <div class="form-group">
+                            <label>ফোন</label>
+                            <input type="text" id="company-phone" placeholder="ফোন নম্বর">
+                        </div>
+                        <div class="form-group">
+                            <label>ইমেইল</label>
+                            <input type="email" id="company-email" placeholder="ইমেইল ঠিকানা">
+                        </div>
+                        <button type="button" onclick="saveCompanyInfo()">সংরক্ষণ করুন</button>
+                    </form>
                 </div>
-
-                <div class="content-card">
-                    <div class="card-header">
-                        <h3>সিস্টেম সেটিংস</h3>
+                
+                <div class="settings-section">
+                    <h3>সিস্টেম সেটিংস</h3>
+                    <div class="form-group">
+                        <label>ট্যাক্স রেট (%)</label>
+                        <input type="number" id="tax-rate" placeholder="০" min="0" max="100">
+                        <small>পণ্যের উপর প্রযোজ্য ট্যাক্স</small>
                     </div>
-                    <div class="card-body">
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <h4>ট্যাক্স রেট</h4>
-                                <p>পণ্যের উপর প্রযোজ্য ট্যাক্স</p>
-                            </div>
-                            <div class="setting-control">
-                                <input type="number" class="form-input" id="tax-rate" placeholder="০" min="0" max="100">
-                                <span>%</span>
-                            </div>
-                        </div>
-                        <div class="setting-item">
-                            <div class="setting-info">
-                                <h4>মুদ্রা</h4>
-                                <p>ডিফল্ট মুদ্রা</p>
-                            </div>
-                            <div class="setting-control">
-                                <select class="form-select" id="currency">
-                                    <option value="BDT">৳ (টাকা)</option>
-                                    <option value="USD">$ (ডলার)</option>
-                                    <option value="EUR">€ (ইউরো)</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label>মুদ্রা</label>
+                        <select id="currency">
+                            <option value="BDT">৳ (টাকা)</option>
+                            <option value="USD">$ (ডলার)</option>
+                            <option value="EUR">€ (ইউরো)</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="saveSystemSettings()">সংরক্ষণ করুন</button>
+                </div>
+                
+                <div class="settings-section">
+                    <h3>ডেটা ব্যাকআপ</h3>
+                    <div class="backup-actions">
+                        <button onclick="exportData()">ডেটা এক্সপোর্ট</button>
+                        <button onclick="importData()">ডেটা ইমপোর্ট</button>
+                        <input type="file" id="import-file" accept=".json" style="display: none;">
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="loading-spinner">
-            <i class="fas fa-spinner fa-spin"></i>
-        </div>
-        <p>লোড হচ্ছে...</p>
-    </div>
-
-    <!-- Toast Notifications -->
-    <div id="toast-container" class="toast-container"></div>
-
     <!-- Modals -->
-    <div id="modal-overlay" class="modal-overlay">
-        <div class="modal" id="product-modal">
+    <!-- Product Modal -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div id="product-modal" class="modal">
             <div class="modal-header">
-                <h3 class="modal-title">পণ্য যোগ/সম্পাদনা</h3>
-                <button class="modal-close">
-                    <i class="fas fa-times"></i>
-                </button>
+                <h3>পণ্য যোগ/সম্পাদনা</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="product-form">
                     <div class="form-group">
-                        <label class="form-label">পণ্যের নাম</label>
-                        <input type="text" class="form-input" id="product-name" required>
+                        <label>পণ্যের নাম</label>
+                        <input type="text" id="product-name" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">SKU</label>
-                        <input type="text" class="form-input" id="product-sku" required>
+                        <label>SKU</label>
+                        <input type="text" id="product-sku" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">ক্যাটাগরি</label>
-                        <select class="form-select" id="product-category" required>
+                        <label>ক্যাটাগরি</label>
+                        <select id="product-category" required>
                             <option value="">ক্যাটাগরি নির্বাচন করুন</option>
                             <option value="restaurant">রেস্টুরেন্ট</option>
                             <option value="grocery">গ্রোসারি</option>
@@ -587,22 +358,92 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">মূল্য</label>
-                        <input type="number" class="form-input" id="product-price" step="0.01" required>
+                        <label>মূল্য</label>
+                        <input type="number" id="product-price" step="0.01" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">স্টক</label>
-                        <input type="number" class="form-input" id="product-stock" required>
+                        <label>স্টক</label>
+                        <input type="number" id="product-stock" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">বিবরণ</label>
-                        <textarea class="form-textarea" id="product-description"></textarea>
+                        <label>বিবরণ</label>
+                        <textarea id="product-description"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary modal-close">বাতিল</button>
-                <button type="submit" form="product-form" class="btn btn-primary">সংরক্ষণ</button>
+                <button class="btn-secondary" onclick="closeModal()">বাতিল</button>
+                <button class="btn-primary" onclick="saveProduct()">সংরক্ষণ</button>
+            </div>
+        </div>
+
+        <!-- Customer Modal -->
+        <div id="customer-modal" class="modal">
+            <div class="modal-header">
+                <h3>গ্রাহক যোগ/সম্পাদনা</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="customer-form">
+                    <div class="form-group">
+                        <label>নাম</label>
+                        <input type="text" id="customer-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ফোন</label>
+                        <input type="text" id="customer-phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ইমেইল</label>
+                        <input type="email" id="customer-email">
+                    </div>
+                    <div class="form-group">
+                        <label>ঠিকানা</label>
+                        <textarea id="customer-address"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">বাতিল</button>
+                <button class="btn-primary" onclick="saveCustomer()">সংরক্ষণ</button>
+            </div>
+        </div>
+
+        <!-- Stock Modal -->
+        <div id="stock-modal" class="modal">
+            <div class="modal-header">
+                <h3>স্টক আপডেট</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="stock-form">
+                    <div class="form-group">
+                        <label>পণ্য নির্বাচন</label>
+                        <select id="stock-product" required>
+                            <option value="">পণ্য নির্বাচন করুন</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>স্টক পরিমাণ</label>
+                        <input type="number" id="stock-quantity" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ধরন</label>
+                        <select id="stock-type" required>
+                            <option value="add">যোগ করুন</option>
+                            <option value="subtract">বিয়োগ করুন</option>
+                            <option value="set">সেট করুন</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>নোট</label>
+                        <textarea id="stock-note"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">বাতিল</button>
+                <button class="btn-primary" onclick="updateStock()">আপডেট</button>
             </div>
         </div>
     </div>
@@ -611,12 +452,12 @@
     <script src="js/utils.js"></script>
     <script src="js/data.js"></script>
     <script src="js/sound.js"></script>
+    <script src="js/main.js"></script>
     <script src="js/products.js"></script>
     <script src="js/customers.js"></script>
     <script src="js/inventory.js"></script>
     <script src="js/reports.js"></script>
     <script src="js/settings.js"></script>
-    <script src="js/main.js"></script>
 </body>
 </html>
 
